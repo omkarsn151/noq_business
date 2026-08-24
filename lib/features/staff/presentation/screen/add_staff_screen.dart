@@ -77,6 +77,11 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
   bool get _isEditing => widget.staff != null;
   bool _timeControllersInitialized = false;
 
+  /// Keys for the break fields so a pick can re-validate just those, without
+  /// flagging untouched fields like Name.
+  final _breakStartFieldKey = GlobalKey<FormFieldState<String>>();
+  final _breakEndFieldKey = GlobalKey<FormFieldState<String>>();
+
   @override
   void initState() {
     super.initState();
@@ -215,19 +220,51 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
     return '$hour:$minute:00';
   }
 
+  int _minutesOf(TimeOfDay time) => time.hour * 60 + time.minute;
+
+  String? _breakStartValidator(String? value) {
+    if (_breakStart == null) {
+      return _breakEnd != null ? 'Break Start is required' : null;
+    }
+    if (_worksFrom == null || _worksTo == null) return null;
+    final breakStart = _minutesOf(_breakStart!);
+    if (breakStart < _minutesOf(_worksFrom!) ||
+        breakStart >= _minutesOf(_worksTo!)) {
+      return 'Break Start must be within Works From and Works To';
+    }
+    return null;
+  }
+
+  String? _breakEndValidator(String? value) {
+    if (_breakEnd == null) {
+      return _breakStart != null ? 'Break End is required' : null;
+    }
+    final breakEnd = _minutesOf(_breakEnd!);
+    if (_breakStart != null && breakEnd <= _minutesOf(_breakStart!)) {
+      return 'Break End must be later than Break Start';
+    }
+    if (_worksFrom == null || _worksTo == null) return null;
+    if (breakEnd <= _minutesOf(_worksFrom!) || breakEnd > _minutesOf(_worksTo!)) {
+      return 'Break End must be within Works From and Works To';
+    }
+    return null;
+  }
+
   Future<void> _pickTime(
     TextEditingController controller,
-    ValueChanged<TimeOfDay> onPicked,
-  ) async {
+    ValueChanged<TimeOfDay> onPicked, {
+    TimeOfDay? initialTime,
+  }) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: initialTime ?? TimeOfDay.now(),
     );
     if (picked != null) {
       setState(() {
         onPicked(picked);
         controller.text = picked.format(context);
       });
+      _validateTimeFields();
     }
   }
 
@@ -252,6 +289,14 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
   String? _requiredValidator(String? value, String label) {
     if (value == null || value.trim().isEmpty) return '$label is required';
     return null;
+  }
+
+  /// Re-validates both break fields. Any pick can invalidate the other one
+  /// (e.g. moving Works To can push the break outside working hours), so they
+  /// are always checked together.
+  void _validateTimeFields() {
+    _breakStartFieldKey.currentState?.validate();
+    _breakEndFieldKey.currentState?.validate();
   }
 
   void _onSavePressed() {
@@ -382,8 +427,11 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                     hintText: 'Set End Time',
                     controller: worksToController,
                     readOnly: true,
-                    onTap: () =>
-                        _pickTime(worksToController, (time) => _worksTo = time),
+                    onTap: () => _pickTime(
+                      worksToController,
+                      (time) => _worksTo = time,
+                      initialTime: _worksTo ?? _worksFrom,
+                    ),
                     validator: (value) => _requiredValidator(value, 'Works To'),
                   ),
 
@@ -392,12 +440,15 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                   AppTextField(
                     labelText: 'Break Start',
                     hintText: 'Set Break Start Time',
+                    fieldKey: _breakStartFieldKey,
                     controller: breakStartController,
                     readOnly: true,
                     onTap: () => _pickTime(
                       breakStartController,
                       (time) => _breakStart = time,
+                      initialTime: _breakStart ?? _worksFrom,
                     ),
+                    validator: _breakStartValidator,
                   ),
 
                   SizedBox(height: 1.5.h),
@@ -405,12 +456,15 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                   AppTextField(
                     labelText: 'Break End',
                     hintText: 'Set Break End Time',
+                    fieldKey: _breakEndFieldKey,
                     controller: breakEndController,
                     readOnly: true,
                     onTap: () => _pickTime(
                       breakEndController,
                       (time) => _breakEnd = time,
+                      initialTime: _breakEnd ?? _breakStart,
                     ),
+                    validator: _breakEndValidator,
                   ),
 
                   SizedBox(height: 1.5.h),

@@ -12,6 +12,9 @@ class AppTextField extends StatelessWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
+  /// Key for the inner [TextFormField], so callers can validate this single
+  /// field without validating the whole form.
+  final Key? fieldKey;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final bool obscureText;
@@ -36,6 +39,7 @@ class AppTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.validator,
+    this.fieldKey,
     this.keyboardType,
     this.textInputAction,
     this.obscureText = false,
@@ -61,6 +65,7 @@ class AppTextField extends StatelessWidget {
           // const SizedBox(height: 2),
         ],
         TextFormField(
+          key: fieldKey,
           controller: controller,
           initialValue: controller == null ? initialValue : null,
           keyboardType: keyboardType,
