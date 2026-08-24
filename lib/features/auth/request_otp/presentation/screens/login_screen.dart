@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sizer/sizer.dart';
 import 'package:go_router/go_router.dart';
@@ -78,6 +79,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: AppTextField(
                     controller: phoneNumberController,
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
                     hintText: 'Enter mobile number',
                     validator: (value) {
                       final phone = value?.trim() ?? '';
