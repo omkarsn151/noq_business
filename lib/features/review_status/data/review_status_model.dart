@@ -46,13 +46,13 @@ class ReviewStatusHeaderModel {
 class ReviewStatusSummaryModel {
   final String businessName;
   final String categoryName;
-  final DateTime submittedAt;
+  final DateTime? submittedAt;
   final DateTime? reviewedAt;
 
   const ReviewStatusSummaryModel({
     required this.businessName,
     required this.categoryName,
-    required this.submittedAt,
+    this.submittedAt,
     this.reviewedAt,
   });
 
@@ -60,7 +60,9 @@ class ReviewStatusSummaryModel {
     return ReviewStatusSummaryModel(
       businessName: json['business_name'] as String,
       categoryName: json['category_name'] as String,
-      submittedAt: DateTime.parse(json['submitted_at'] as String),
+      submittedAt: json['submitted_at'] != null
+          ? DateTime.parse(json['submitted_at'] as String)
+          : null,
       reviewedAt: json['reviewed_at'] != null
           ? DateTime.parse(json['reviewed_at'] as String)
           : null,

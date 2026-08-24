@@ -21,7 +21,8 @@ const _monthNames = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-String _formatDate(DateTime date) {
+String _formatDate(DateTime? date) {
+  if (date == null) return '—';
   final local = date.toLocal();
   return '${_monthNames[local.month - 1]} ${local.day}, ${local.year}';
 }

@@ -17,6 +17,7 @@ class BusinessSetupSubmitted extends BusinessSetupEvent {
   final String description;
   final String gstNumber;
   final List<String> documentIds;
+  final List<String> thumbnailUploadIds;
 
   const BusinessSetupSubmitted({
     required this.name,
@@ -28,6 +29,7 @@ class BusinessSetupSubmitted extends BusinessSetupEvent {
     required this.description,
     required this.gstNumber,
     required this.documentIds,
+    required this.thumbnailUploadIds,
   });
 
   @override
@@ -41,5 +43,6 @@ class BusinessSetupSubmitted extends BusinessSetupEvent {
     description,
     gstNumber,
     documentIds,
+    thumbnailUploadIds,
   ];
 }

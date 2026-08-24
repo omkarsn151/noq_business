@@ -17,6 +17,7 @@ class BusinessSetupRepository {
     required String description,
     required String gstNumber,
     required List<String> documentIds,
+    required List<String> thumbnailUploadIds,
   }) async {
     await _dioClient.put(
       ApiEndpoints.createBusinesses,
@@ -31,6 +32,7 @@ class BusinessSetupRepository {
         'postal_code': postalCode,
         'gst_number': gstNumber,
         'document_ids': documentIds,
+        'thumbnail_upload_ids': thumbnailUploadIds,
       },
     );
   }

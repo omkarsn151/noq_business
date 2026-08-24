@@ -68,15 +68,53 @@ class BusinessDetailsModel {
   }
 }
 
+class BusinessThumbnailModel {
+  final String uploadId;
+  final String fileName;
+  final String url;
+
+  const BusinessThumbnailModel({
+    required this.uploadId,
+    required this.fileName,
+    required this.url,
+  });
+
+  factory BusinessThumbnailModel.fromJson(Map<String, dynamic> json) {
+    return BusinessThumbnailModel(
+      uploadId: json['upload_id'] as String,
+      fileName: json['file_name'] as String,
+      url: json['url'] as String,
+    );
+  }
+}
+
+class BusinessMediaModel {
+  final List<BusinessThumbnailModel> thumbnails;
+
+  const BusinessMediaModel({required this.thumbnails});
+
+  factory BusinessMediaModel.fromJson(Map<String, dynamic> json) {
+    return BusinessMediaModel(
+      thumbnails: (json['thumbnails'] as List? ?? [])
+          .map(
+            (e) => BusinessThumbnailModel.fromJson(e as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+}
+
 class BusinessModel {
   final String id;
   final BusinessDetailsModel business;
   final List<BusinessDocumentModel> documents;
+  final BusinessMediaModel? media;
 
   const BusinessModel({
     required this.id,
     required this.business,
     required this.documents,
+    this.media,
   });
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) {
@@ -88,6 +126,9 @@ class BusinessModel {
       documents: (json['documents'] as List)
           .map((e) => BusinessDocumentModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      media: json['media'] != null
+          ? BusinessMediaModel.fromJson(json['media'] as Map<String, dynamic>)
+          : null,
     );
   }
 }

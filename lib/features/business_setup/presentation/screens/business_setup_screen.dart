@@ -79,11 +79,13 @@ class _BusinessSetupScreenState extends State<BusinessSetupScreen> {
   var _licenseSlot = _UploadSlotState();
   var _idProofSlot = _UploadSlotState();
   var _taxDocumentSlot = _UploadSlotState();
+  var _thumbnailSlot = _UploadSlotState();
 
   bool get _anySlotUploading =>
       _licenseSlot.status == UploadSlotStatus.uploading ||
       _idProofSlot.status == UploadSlotStatus.uploading ||
-      _taxDocumentSlot.status == UploadSlotStatus.uploading;
+      _taxDocumentSlot.status == UploadSlotStatus.uploading ||
+      _thumbnailSlot.status == UploadSlotStatus.uploading;
 
   @override
   void initState() {
@@ -123,6 +125,17 @@ class _BusinessSetupScreenState extends State<BusinessSetupScreen> {
           case 'tax_document':
             _taxDocumentSlot = slotState;
         }
+      }
+
+      final thumbnails = business.media?.thumbnails ?? [];
+      if (thumbnails.isNotEmpty) {
+        final thumbnail = thumbnails.first;
+        _thumbnailSlot = _UploadSlotState(
+          status: UploadSlotStatus.uploaded,
+          fileId: thumbnail.uploadId,
+          fileName: thumbnail.fileName,
+          previewUrl: thumbnail.url,
+        );
       }
     });
   }
@@ -220,6 +233,72 @@ class _BusinessSetupScreenState extends State<BusinessSetupScreen> {
     }
   }
 
+  Future<void> _handleImageSlotPick({
+    required String purpose,
+    required void Function(_UploadSlotState) apply,
+  }) async {
+    File? file;
+    try {
+      file = await _imagePickerService.pickImageFromGallery();
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.error(context, 'Could not open picker. Please try again.');
+      }
+      return;
+    }
+    if (file == null || !mounted) return;
+
+    final sizeError = _uploadService.validateSize(file);
+    if (sizeError != null) {
+      AppSnackbar.error(context, sizeError);
+      return;
+    }
+
+    setState(() {
+      apply(_UploadSlotState(status: UploadSlotStatus.uploading));
+    });
+
+    try {
+      final result = await _uploadService.upload(file: file, purpose: purpose);
+      if (!mounted) return;
+      setState(() {
+        apply(
+          _UploadSlotState(
+            status: UploadSlotStatus.uploaded,
+            fileId: result.id,
+            fileName: result.fileName,
+            previewFile: file,
+          ),
+        );
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        apply(
+          _UploadSlotState(
+            status: UploadSlotStatus.error,
+            errorMessage: e.message,
+          ),
+        );
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        apply(
+          _UploadSlotState(
+            status: UploadSlotStatus.error,
+            errorMessage: 'Upload failed. Please try again.',
+          ),
+        );
+      });
+    }
+  }
+
+  Future<void> _pickThumbnail() => _handleImageSlotPick(
+    purpose: 'business_thumbnail',
+    apply: (s) => _thumbnailSlot = s,
+  );
+
   Future<void> _pickLicense() =>
       _handleSlotPick(purpose: 'license', apply: (s) => _licenseSlot = s);
 
@@ -256,6 +335,9 @@ class _BusinessSetupScreenState extends State<BusinessSetupScreen> {
   Future<void> _removeTaxDocument() =>
       _handleSlotRemove(_taxDocumentSlot, (s) => _taxDocumentSlot = s);
 
+  Future<void> _removeThumbnail() =>
+      _handleSlotRemove(_thumbnailSlot, (s) => _thumbnailSlot = s);
+
   String? _requiredValidator(String? value, String label) {
     if (value == null || value.trim().isEmpty) return '$label is required';
     return null;
@@ -287,6 +369,9 @@ class _BusinessSetupScreenState extends State<BusinessSetupScreen> {
           _idProofSlot.fileId!,
           _taxDocumentSlot.fileId!,
         ],
+        thumbnailUploadIds: _thumbnailSlot.isUploaded
+            ? [_thumbnailSlot.fileId!]
+            : [],
       ),
     );
   }
@@ -414,6 +499,17 @@ class _BusinessSetupScreenState extends State<BusinessSetupScreen> {
                           textCapitalization: TextCapitalization.characters,
                           validator: (value) =>
                               _requiredValidator(value, 'GST number'),
+                        ),
+                        SizedBox(height: 1.5.h),
+                        UploadSlotField(
+                          label: 'Business Thumbnail',
+                          status: _thumbnailSlot.status,
+                          fileName: _thumbnailSlot.fileName,
+                          errorMessage: _thumbnailSlot.errorMessage,
+                          previewFile: _thumbnailSlot.previewFile,
+                          previewUrl: _thumbnailSlot.previewUrl,
+                          onTap: _pickThumbnail,
+                          onRemove: _removeThumbnail,
                         ),
                         SizedBox(height: 1.5.h),
                         UploadSlotField(

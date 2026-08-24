@@ -29,6 +29,7 @@ class BusinessSetupBloc extends Bloc<BusinessSetupEvent, BusinessSetupState> {
         description: event.description,
         gstNumber: event.gstNumber,
         documentIds: event.documentIds,
+        thumbnailUploadIds: event.thumbnailUploadIds,
       );
       await SecureStorageService().saveBusinessStatus(
         BusinessStatus.businessSetup,
