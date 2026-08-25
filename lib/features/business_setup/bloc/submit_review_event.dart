@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:noq_business/features/business_setup/data/business_hour_model.dart';
 
 abstract class SubmitReviewEvent extends Equatable {
   const SubmitReviewEvent();
@@ -15,6 +16,7 @@ class SubmitReviewSubmitted extends SubmitReviewEvent {
   final int cancellationCutoffHours;
   final int lateCancellationFeePercent;
   final bool autoApproveEnabled;
+  final List<BusinessHourModel> hours;
 
   const SubmitReviewSubmitted({
     required this.blockMinutes,
@@ -24,6 +26,7 @@ class SubmitReviewSubmitted extends SubmitReviewEvent {
     required this.cancellationCutoffHours,
     required this.lateCancellationFeePercent,
     required this.autoApproveEnabled,
+    required this.hours,
   });
 
   @override
@@ -35,5 +38,6 @@ class SubmitReviewSubmitted extends SubmitReviewEvent {
     cancellationCutoffHours,
     lateCancellationFeePercent,
     autoApproveEnabled,
+    hours,
   ];
 }

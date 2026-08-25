@@ -1,5 +1,6 @@
 import 'package:noq_business/core/api/api_endpoints.dart';
 import 'package:noq_business/core/api/dio_client.dart';
+import 'package:noq_business/features/business_setup/data/business_hour_model.dart';
 
 class BusinessSetupRepository {
   final DioClient _dioClient;
@@ -45,6 +46,7 @@ class BusinessSetupRepository {
     required int cancellationCutoffHours,
     required int lateCancellationFeePercent,
     required bool autoApproveEnabled,
+    required List<BusinessHourModel> hours,
   }) async {
     await _dioClient.post(
       ApiEndpoints.submitBusinessForReview,
@@ -56,6 +58,7 @@ class BusinessSetupRepository {
         'cancellation_cutoff_hours': cancellationCutoffHours,
         'late_cancellation_fee_percent': lateCancellationFeePercent,
         'auto_approve_enabled': autoApproveEnabled,
+        'hours': hours.map((hour) => hour.toJson()).toList(),
       },
     );
   }

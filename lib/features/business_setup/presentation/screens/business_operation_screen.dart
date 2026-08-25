@@ -12,6 +12,8 @@ import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/features/business_setup/bloc/submit_review_bloc.dart';
 import 'package:noq_business/features/business_setup/bloc/submit_review_event.dart';
 import 'package:noq_business/features/business_setup/bloc/submit_review_state.dart';
+import 'package:noq_business/features/business_setup/data/business_hour_model.dart';
+import 'package:noq_business/features/business_setup/presentation/widgets/business_hours_section.dart';
 import 'package:noq_business/features/business_setup/presentation/widgets/option_grid.dart';
 import 'package:noq_business/features/business_setup/presentation/widgets/option_row.dart';
 import 'package:noq_business/features/service/bloc/service_bloc.dart';
@@ -64,12 +66,33 @@ class _BusinessOperationScreenState extends State<BusinessOperationScreen> {
   ];
   int? selectedBookingWindow;
 
+  List<BusinessHourModel> _hours = BusinessHourModel.initialWeek();
+
+  /// Per-day errors stay hidden until the first submit attempt.
+  bool _hoursValidated = false;
+
   String? _requiredValidator(String? value, String label) {
     if (value == null || value.trim().isEmpty) return '$label is required';
     return null;
   }
 
+  /// Reports the first business-hours problem, or null when the week is valid.
+  /// Individual day errors are rendered on their own cards, so this only needs
+  /// to point the user at the right day.
+  String? _hoursError() {
+    if (_hours.every((day) => day.isClosed)) {
+      return 'Keep at least one day open for bookings';
+    }
+    final invalid = _hours.where((day) => day.error != null).toList();
+    if (invalid.isEmpty) return null;
+    if (invalid.length == 1) {
+      return 'Fix the hours for ${invalid.first.dayName}';
+    }
+    return 'Fix the hours for ${invalid.map((d) => d.shortDayName).join(', ')}';
+  }
+
   Future<void> _onSubmitForReviewPressed() async {
+    setState(() => _hoursValidated = true);
     if (_formKey.currentState?.validate() != true) return;
 
     final missing = <String>[];
@@ -90,6 +113,12 @@ class _BusinessOperationScreenState extends State<BusinessOperationScreen> {
 
     if (missing.isNotEmpty) {
       AppSnackbar.error(context, 'Please add: ${missing.join(', ')}');
+      return;
+    }
+
+    final hoursError = _hoursError();
+    if (hoursError != null) {
+      AppSnackbar.error(context, hoursError);
       return;
     }
 
@@ -120,6 +149,7 @@ class _BusinessOperationScreenState extends State<BusinessOperationScreen> {
           cancellationPercentController.text.trim(),
         ),
         autoApproveEnabled: autoApproval,
+        hours: _hours,
       ),
     );
   }
@@ -171,6 +201,14 @@ class _BusinessOperationScreenState extends State<BusinessOperationScreen> {
                         style: Theme.of(context).textTheme.labelLarge,
                       ),
                       StaffSection(),
+                      SizedBox(height: 2.h),
+                      BusinessHoursSection(
+                        hours: _hours,
+                        showErrors: _hoursValidated,
+                        onChanged: (updated) {
+                          setState(() => _hours = updated);
+                        },
+                      ),
                       SizedBox(height: 2.h),
                       Text(
                         'Set Approval Mode',

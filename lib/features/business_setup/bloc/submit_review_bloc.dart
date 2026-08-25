@@ -27,6 +27,7 @@ class SubmitReviewBloc extends Bloc<SubmitReviewEvent, SubmitReviewState> {
         cancellationCutoffHours: event.cancellationCutoffHours,
         lateCancellationFeePercent: event.lateCancellationFeePercent,
         autoApproveEnabled: event.autoApproveEnabled,
+        hours: event.hours,
       );
       await SecureStorageService().saveBusinessStatus(
         BusinessStatus.underReview,
