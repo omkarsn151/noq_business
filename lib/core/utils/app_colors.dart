@@ -32,14 +32,32 @@ class AppColors {
   static const Color textPrimary = Color(0XFF0F172A);
 
   //textSecondary
-  static const Color textSecondary = Color(0xFF3C3C3C);
+  static const Color textSecondary = Color(0xFF565656);
 
   //border
   static const Color border = Color(0xFFACACAC);
 
   //borderLight
-  static const Color borderLight = Color(0xFFD5D5D5);
+  static const Color borderLight = Color(0xFFE4E4E4);
 
   //textfieldFilledColor
   static const Color textfieldFilledColor = Color(0XFFF9F9F9);
+
+  //gradientStart - top of the primary highlight card
+  static const Color gradientStart = Color(0XFF8E1F3C);
+
+  //gradientEnd - bottom of the primary highlight card
+  static const Color gradientEnd = Color(0XFF4A1421);
+
+  //cardShadow
+  static const Color cardShadow = Color(0x132C2C2C);
+
+  //live - live indicator dot
+  static const Color live = Color(0XFFEF4444);
+
+  //successLight - background of the growth chip
+  static const Color successLight = Color(0XFFDCFCE7);
+
+  //overlayLight - translucent white used on the primary card
+  static const Color overlayLight = Color(0X33FFFFFF);
 }

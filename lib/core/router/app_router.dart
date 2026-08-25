@@ -2,11 +2,11 @@ import 'package:go_router/go_router.dart';
 import 'package:noq_business/features/auth/request_otp/presentation/screens/login_screen.dart';
 import 'package:noq_business/features/auth/verify_otp/presentation/screens/otp_verification_scren.dart';
 import 'package:noq_business/features/auth/register/presentation/screens/register_screen.dart';
-import 'package:noq_business/features/bookings/bookings_screen.dart';
+import 'package:noq_business/features/bookings/presentation/screens/bookings_screen.dart';
 import 'package:noq_business/features/business_setup/presentation/screens/business_operation_screen.dart';
 import 'package:noq_business/features/business_setup/presentation/screens/business_setup_screen.dart';
 import 'package:noq_business/features/review_status/presentation/screens/review_status_screen.dart';
-import 'package:noq_business/features/dashboard/dashboard_screen.dart';
+import 'package:noq_business/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:noq_business/features/main_screen/main_screen.dart';
 import 'package:noq_business/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:noq_business/features/privacy/privacy_policy_screen.dart';
@@ -104,7 +104,7 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/dashboard',
-                builder: (context, state) => const DasboardScreen(),
+                builder: (context, state) => const DashboardScreen(),
               ),
             ],
           ),
