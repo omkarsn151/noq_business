@@ -32,7 +32,7 @@ class AppColors {
   static const Color textPrimary = Color(0XFF0F172A);
 
   //textSecondary
-  static const Color textSecondary = Color(0xFF565656);
+  static const Color textSecondary = Color(0xFF727272);
 
   //border
   static const Color border = Color(0xFFACACAC);
@@ -60,4 +60,16 @@ class AppColors {
 
   //overlayLight - translucent white used on the primary card
   static const Color overlayLight = Color(0X33FFFFFF);
+
+  //chartPrimary - leading series in charts
+  static const Color chartPrimary = Color(0XFFB01D33);
+
+  //chartSecondary - supporting series in charts
+  static const Color chartSecondary = Color(0XFFF08098);
+
+  //chartFill - area under the leading chart series
+  static const Color chartFill = Color(0X1FF08098);
+
+  //chartGrid - chart gridlines
+  static const Color chartGrid = Color(0XFFE9E9E9);
 }
