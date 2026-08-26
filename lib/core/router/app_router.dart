@@ -12,7 +12,7 @@ import 'package:noq_business/features/onboarding/presentation/onboarding_screen.
 import 'package:noq_business/features/privacy/privacy_policy_screen.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/service/presentation/screens/add_service_screen.dart';
-import 'package:noq_business/features/settings/settings_screen.dart';
+import 'package:noq_business/features/settings/presentation/screens/settings_screen.dart';
 import 'package:noq_business/features/splash/splash_screen.dart';
 import 'package:noq_business/features/staff/data/staff_model.dart';
 import 'package:noq_business/features/staff/presentation/screen/add_staff_screen.dart';
