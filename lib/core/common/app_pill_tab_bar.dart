@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import 'package:noq_business/core/utils/app_colors.dart';
+
+import '../utils/app_colors.dart';
 
 /// Scrollable pill styled tab bar - the selected tab is a filled primary pill,
 /// the rest are plain labels.
-class BookingStatusTabBar extends StatelessWidget {
+class AppPillTabBar extends StatelessWidget {
   final TabController controller;
   final List<String> labels;
 
-  const BookingStatusTabBar({
+  const AppPillTabBar({
     super.key,
     required this.controller,
     required this.labels,

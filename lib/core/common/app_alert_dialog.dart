@@ -12,7 +12,7 @@ class AppAlertDialog {
     required String title,
     required String message,
     String primaryLabel = 'Yes',
-    String secondaryLabel = 'No',
+    String? secondaryLabel = 'No',
     Color? iconColor,
     Color? iconBackgroundColor,
   }) async {
@@ -65,24 +65,28 @@ class AppAlertDialog {
                     onPressed: () => Navigator.pop(context, true),
                   ),
                 ),
-                SizedBox(height: 1.h),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 2.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(3.w),
+                // A null secondary label leaves just the primary button, for
+                // acknowledgement dialogs like 'Done'.
+                if (secondaryLabel != null) ...[
+                  SizedBox(height: 1.h),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 2.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(3.w),
+                        ),
+                        side: BorderSide(color: AppColors.borderLight),
                       ),
-                      side: BorderSide(color: AppColors.borderLight),
-                    ),
-                    child: Text(
-                      secondaryLabel,
-                      style: TextStyle(color: AppColors.textPrimary),
+                      child: Text(
+                        secondaryLabel,
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

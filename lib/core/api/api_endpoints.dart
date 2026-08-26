@@ -63,4 +63,13 @@ class ApiEndpoints {
   //====================Business====================
 
   static const String getReviewStatus = "v1/business/review-status";
+
+
+  //====================Promotions====================
+  static const String getPromotions = "v1/business/promos";
+
+  static const String createPromotion = "v1/business/promos";
+
+  static const String getPromotionDetails = "v1/business/promos/";
+
 }

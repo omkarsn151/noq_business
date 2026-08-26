@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/common/app_appbar.dart';
+import 'package:noq_business/core/common/app_pill_tab_bar.dart';
 import 'package:noq_business/features/bookings/data/booking_status.dart';
 import 'package:noq_business/features/bookings/presentation/widgets/booking_card.dart';
-import 'package:noq_business/features/bookings/presentation/widgets/booking_status_tab_bar.dart';
 
 typedef _Booking = ({
   String customerName,
@@ -86,7 +86,7 @@ class _BookingsScreenState extends State<BookingsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 2.h),
-            BookingStatusTabBar(
+            AppPillTabBar(
               controller: _tabController,
               labels: [for (final status in _tabStatuses) _tabLabel(status)],
             ),

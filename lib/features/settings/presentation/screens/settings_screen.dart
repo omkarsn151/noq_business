@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/auth/auth_session.dart';
 import 'package:noq_business/core/common/app_alert_dialog.dart';
@@ -50,7 +51,7 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.local_offer_outlined,
                     title: 'Promotions',
                     subtitle: 'Create and manage offers',
-                    onTap: () {},
+                    onTap: () => context.push('/promotions'),
                   ),
                   SettingsTile(
                     icon: Icons.storefront_outlined,
@@ -62,13 +63,13 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.description_outlined,
                     title: 'T&C',
                     subtitle: 'Read terms and conditions',
-                    onTap: () {},
+                    onTap: () => context.push('/tnc'),
                   ),
                   SettingsTile(
                     icon: Icons.shield_outlined,
                     title: 'Privacy Policy',
                     subtitle: 'Learn how we protect your data',
-                    onTap: () {},
+                    onTap: () => context.push('/privacy'),
                   ),
                   SettingsTile(
                     icon: Icons.info_outline_rounded,

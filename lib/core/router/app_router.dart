@@ -10,6 +10,9 @@ import 'package:noq_business/features/dashboard/presentation/screens/dashboard_s
 import 'package:noq_business/features/main_screen/main_screen.dart';
 import 'package:noq_business/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:noq_business/features/privacy/privacy_policy_screen.dart';
+import 'package:noq_business/features/promotions/presentation/screens/create_promotion_screen.dart';
+import 'package:noq_business/features/promotions/presentation/screens/promotion_details_screen.dart';
+import 'package:noq_business/features/promotions/presentation/screens/promotions_screen.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/service/presentation/screens/add_service_screen.dart';
 import 'package:noq_business/features/settings/presentation/screens/settings_screen.dart';
@@ -74,8 +77,23 @@ class AppRouter {
         path: '/privacy',
         builder: (context, state) => const PrivacyPolicyScreen(),
       ),
+
       GoRoute(path: '/tnc', builder: (context, state) => const TncScreen()),
 
+      GoRoute(
+        path: '/promotions',
+        builder: (context, state) => const PromotionsScreen(),
+      ),
+      GoRoute(
+        path: '/create-promotion',
+        builder: (context, state) => const CreatePromotionScreen(),
+      ),
+      GoRoute(
+        path: '/promotions/:id',
+        builder: (context, state) => PromotionDetailsScreen(
+          promotionId: state.pathParameters['id']!,
+        ),
+      ),
       // Bottom nav shell
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
