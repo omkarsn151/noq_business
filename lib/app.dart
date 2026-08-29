@@ -9,6 +9,8 @@ import 'package:noq_business/features/business/repository/business_repository.da
 import 'package:noq_business/features/business_setup/bloc/business_setup_bloc.dart';
 import 'package:noq_business/features/business_setup/bloc/submit_review_bloc.dart';
 import 'package:noq_business/features/business_setup/repository/business_setup_repository.dart';
+import 'package:noq_business/features/bookings/bloc/bookings_bloc.dart';
+import 'package:noq_business/features/bookings/repository/bookings_repository.dart';
 import 'package:noq_business/features/promotions/bloc/create_promotion_bloc.dart';
 import 'package:noq_business/features/promotions/bloc/promotion_details_bloc.dart';
 import 'package:noq_business/features/promotions/bloc/promotions_bloc.dart';
@@ -75,6 +77,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<PromotionsBloc>(
           create: (_) => PromotionsBloc(PromotionsRepository()),
+        ),
+        BlocProvider<BookingsBloc>(
+          create: (_) => BookingsBloc(BookingsRepository()),
         ),
         BlocProvider<AddStaffBloc>(
           create: (_) => AddStaffBloc(StaffRepository()),

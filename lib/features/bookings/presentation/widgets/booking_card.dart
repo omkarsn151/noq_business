@@ -13,6 +13,9 @@ class BookingCard extends StatelessWidget {
   final String startTime;
   final String endTime;
   final BookingStatus status;
+
+  /// Adds a 'Walk-in' chip next to the service details.
+  final bool isWalkIn;
   final VoidCallback? onReject;
   final VoidCallback? onApprove;
 
@@ -24,6 +27,7 @@ class BookingCard extends StatelessWidget {
     required this.startTime,
     required this.endTime,
     required this.status,
+    this.isWalkIn = false,
     this.onReject,
     this.onApprove,
   });
@@ -73,8 +77,10 @@ class BookingCard extends StatelessWidget {
                       spacing: 2.w,
                       runSpacing: 0.6.h,
                       children: [
-                        _BookingChip(label: serviceName),
+                        if (serviceName.isNotEmpty)
+                          _BookingChip(label: serviceName),
                         _BookingChip(label: duration),
+                        if (isWalkIn) const _BookingChip(label: 'Walk-in'),
                       ],
                     ),
                   ],

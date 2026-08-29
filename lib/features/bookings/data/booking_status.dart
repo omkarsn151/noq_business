@@ -1,47 +1,39 @@
 enum BookingStatus {
-  pending,
-  approved,
-  rejected,
-  cancelled;
+  pending('Pending', 'pending', 'pending'),
+  approved('Approved', 'approved', 'approved'),
+  rejected('Rejected', 'rejected', 'rejected'),
+  cancelled('Cancellations', 'cancellations', 'cancelled');
 
+  /// Tab label.
+  final String label;
+
+  /// Value used for the `tab` query parameter and the meta counts key.
+  final String value;
+
+  /// How a single booking spells this status in its own `status` field.
+  final String itemValue;
+
+  const BookingStatus(this.label, this.value, this.itemValue);
+
+  /// Resolves a tab value (`pending`, ..., `cancellations`).
+  static BookingStatus fromValue(String? value) {
+    return BookingStatus.values.firstWhere(
+      (status) => status.value == value || status.name == value,
+      orElse: () => BookingStatus.pending,
+    );
+  }
+
+  /// Resolves the `status` of a single booking. Accepts both the item spelling
+  /// (`cancelled`) and the tab spelling (`cancellations`).
   static BookingStatus? fromString(String? value) {
-    switch (value) {
-      case 'pending':
-        return BookingStatus.pending;
-      case 'approved':
-        return BookingStatus.approved;
-      case 'rejected':
-        return BookingStatus.rejected;
-      case 'cancelled':
-        return BookingStatus.cancelled;
-      default:
-        return null;
+    if (value == null) return null;
+    for (final status in BookingStatus.values) {
+      if (status.itemValue == value || status.value == value) return status;
     }
+    return null;
   }
 
-  String get value {
-    switch (this) {
-      case BookingStatus.pending:
-        return 'pending';
-      case BookingStatus.approved:
-        return 'approved';
-      case BookingStatus.rejected:
-        return 'rejected';
-      case BookingStatus.cancelled:
-        return 'cancelled';
-    }
-  }
-
-  String get label {
-    switch (this) {
-      case BookingStatus.pending:
-        return 'Pending';
-      case BookingStatus.approved:
-        return 'Approved';
-      case BookingStatus.rejected:
-        return 'Rejected';
-      case BookingStatus.cancelled:
-        return 'Cancelled';
-    }
-  }
+  /// Used in the empty state copy - 'No cancelled bookings' reads better than
+  /// the plural tab label.
+  String get emptyLabel => itemValue;
 }

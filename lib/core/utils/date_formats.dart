@@ -38,3 +38,23 @@ String formatDateTime(DateTime? date) {
   if (date == null) return '—';
   return '${formatDate(date)}, ${formatTime(date)}';
 }
+
+/// 'Today, 4:00 PM' / 'Tomorrow, 4:00 PM' / 'Jul 01, 6:00 PM'
+String formatRelativeDateTime(DateTime? date) {
+  if (date == null) return '—';
+  final local = date.toLocal();
+
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  final daysApart = day.difference(today).inDays;
+
+  final label = switch (daysApart) {
+    0 => 'Today',
+    1 => 'Tomorrow',
+    _ =>
+      '${monthNames[local.month - 1]} ${local.day.toString().padLeft(2, '0')}',
+  };
+
+  return '$label, ${formatTime(local)}';
+}
