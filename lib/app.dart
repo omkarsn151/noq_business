@@ -25,6 +25,8 @@ import 'package:noq_business/features/service/repository/service_repository.dart
 import 'package:noq_business/features/staff/bloc/add_staff_bloc.dart';
 import 'package:noq_business/features/staff/bloc/staff_bloc.dart';
 import 'package:noq_business/features/staff/repository/staff_repository.dart';
+import 'package:noq_business/features/walkin/bloc/create_walkin_bloc.dart';
+import 'package:noq_business/features/walkin/repository/walkin_repository.dart';
 import 'package:noq_business/features/auth/register/repository/register_repository.dart';
 import 'package:noq_business/features/auth/request_otp/bloc/request_otp_bloc.dart';
 import 'package:noq_business/features/auth/request_otp/repository/request_otp_repository.dart';
@@ -83,6 +85,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<AddStaffBloc>(
           create: (_) => AddStaffBloc(StaffRepository()),
+        ),
+        BlocProvider<CreateWalkinBloc>(
+          create: (_) => CreateWalkinBloc(WalkinRepository()),
         ),
       ],
       child: Sizer(

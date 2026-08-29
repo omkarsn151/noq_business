@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/common/app_appbar.dart';
 import 'package:noq_business/core/common/app_button.dart';
+import 'package:noq_business/core/common/app_snackbar.dart';
 import 'package:noq_business/core/common/app_text_field.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/service/presentation/widgets/service_selection_bottom_sheet.dart';
+import 'package:noq_business/features/walkin/bloc/create_walkin_bloc.dart';
+import 'package:noq_business/features/walkin/bloc/create_walkin_event.dart';
+import 'package:noq_business/features/walkin/bloc/create_walkin_state.dart';
+import 'package:noq_business/features/walkin/data/walkin_slot_selection.dart';
 import 'package:noq_business/features/walkin/presentation/widgets/slot_selection_bottom_sheet.dart';
 
 class WalkinScreen extends StatefulWidget {
@@ -18,15 +24,17 @@ class WalkinScreen extends StatefulWidget {
 class _WalkinScreenState extends State<WalkinScreen> {
   final _formKey = GlobalKey<FormState>();
   final _customerNameController = TextEditingController();
+  final _customerPhoneController = TextEditingController();
   final _servicesController = TextEditingController();
   final _slotController = TextEditingController();
 
   List<ServiceModel> _selectedServices = [];
-  String? _selectedSlot;
+  WalkinSlotSelection? _selectedSlot;
 
   @override
   void dispose() {
     _customerNameController.dispose();
+    _customerPhoneController.dispose();
     _servicesController.dispose();
     _slotController.dispose();
     super.dispose();
@@ -41,21 +49,73 @@ class _WalkinScreenState extends State<WalkinScreen> {
     setState(() {
       _selectedServices = result;
       _servicesController.text = result.map((s) => s.name).join(', ');
+      // A different service set means a different visit length, so the chips
+      // picked for the old one no longer apply.
+      _clearSlot();
     });
   }
 
   Future<void> _pickSlot() async {
-    final result = await SlotSelectionBottomSheet.show(context);
+    if (_selectedServices.isEmpty) {
+      AppSnackbar.error(context, 'Select at least one service first');
+      return;
+    }
+
+    final result = await SlotSelectionBottomSheet.show(
+      context,
+      services: _selectedServices,
+    );
     if (result == null) return;
     setState(() {
       _selectedSlot = result;
-      _slotController.text = result;
+      _slotController.text = result.label;
     });
+  }
+
+  void _clearSlot() {
+    _selectedSlot = null;
+    _slotController.clear();
   }
 
   void _addToQueue() {
     if (!_formKey.currentState!.validate()) return;
-    // TODO: submit the walk-in request once the API is wired up.
+
+    final slot = _selectedSlot;
+    if (slot == null) return;
+
+    final phone = _customerPhoneController.text.trim();
+    context.read<CreateWalkinBloc>().add(
+      CreateWalkinSubmitted(
+        customerName: _customerNameController.text,
+        customerPhone: phone.isEmpty ? null : phone,
+        serviceIds: _selectedServices.map((s) => s.id).toList(),
+        slotStarts: slot.starts,
+      ),
+    );
+  }
+
+  void _onCreated(BuildContext context, CreateWalkinState state) {
+    if (state is CreateWalkinSuccess) {
+      AppSnackbar.success(
+        context,
+        'Walk-in confirmed - ${state.booking.reference}',
+      );
+      _formKey.currentState?.reset();
+      setState(() {
+        _customerNameController.clear();
+        _customerPhoneController.clear();
+        _servicesController.clear();
+        _selectedServices = [];
+        _clearSlot();
+      });
+      return;
+    }
+
+    if (state is CreateWalkinFailure) {
+      AppSnackbar.error(context, state.message);
+      // These starts can never succeed on a retry - make the clerk pick again.
+      if (state.isSlotStale) setState(_clearSlot);
+    }
   }
 
   String? _requiredValidator(String? value, String field) {
@@ -81,11 +141,18 @@ class _WalkinScreenState extends State<WalkinScreen> {
               children: [
                 AppTextField(
                   labelText: 'Customer Name',
-                  hintText: 'Enter your business name',
+                  hintText: 'Enter customer name',
                   controller: _customerNameController,
                   textCapitalization: TextCapitalization.words,
                   validator: (value) =>
                       _requiredValidator(value, 'Customer name'),
+                ),
+                SizedBox(height: 1.5.h),
+                AppTextField(
+                  labelText: 'Customer Phone (optional)',
+                  hintText: 'Enter customer phone',
+                  controller: _customerPhoneController,
+                  keyboardType: TextInputType.phone,
                 ),
                 SizedBox(height: 1.5.h),
                 AppTextField(
@@ -104,7 +171,7 @@ class _WalkinScreenState extends State<WalkinScreen> {
                 ),
                 SizedBox(height: 1.5.h),
                 AppTextField(
-                  labelText: 'Closet Available slot',
+                  labelText: 'Closest Available slot',
                   hintText: 'Select slot',
                   controller: _slotController,
                   readOnly: true,
@@ -117,7 +184,16 @@ class _WalkinScreenState extends State<WalkinScreen> {
                       _selectedSlot == null ? 'Select a slot' : null,
                 ),
                 SizedBox(height: 4.h),
-                AppButton(label: 'Add to queue', onPressed: _addToQueue),
+                BlocConsumer<CreateWalkinBloc, CreateWalkinState>(
+                  listener: _onCreated,
+                  builder: (context, state) {
+                    return AppButton(
+                      label: 'Add to queue',
+                      isLoading: state is CreateWalkinLoading,
+                      onPressed: _addToQueue,
+                    );
+                  },
+                ),
               ],
             ),
           ),
