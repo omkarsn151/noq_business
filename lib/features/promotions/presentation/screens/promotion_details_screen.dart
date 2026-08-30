@@ -11,7 +11,7 @@ import 'package:noq_business/features/promotions/bloc/promotion_details_state.da
 import 'package:noq_business/features/promotions/data/promotion_details_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_status.dart';
-import 'package:noq_business/features/promotions/presentation/widgets/promotion_info_row.dart';
+import 'package:noq_business/core/common/app_info_row.dart';
 
 /// '10 Aug 2026 - 30 Sep 2026' for the dates the promo runs between.
 String _availableDays(PromotionValidity validity) {
@@ -75,15 +75,15 @@ class _PromotionDetailsScreenState extends State<PromotionDetailsScreen> {
           },
         ),
       ),
-      bottomNavigationBar: BlocBuilder<
-        PromotionDetailsBloc,
-        PromotionDetailsState
-      >(
-        builder: (context, state) {
-          if (state is! PromotionDetailsSuccess) return const SizedBox.shrink();
-          return const _DetailsActions();
-        },
-      ),
+      bottomNavigationBar:
+          BlocBuilder<PromotionDetailsBloc, PromotionDetailsState>(
+            builder: (context, state) {
+              if (state is! PromotionDetailsSuccess) {
+                return const SizedBox.shrink();
+              }
+              return const _DetailsActions();
+            },
+          ),
     );
   }
 }
@@ -113,7 +113,11 @@ class _DetailsBody extends StatelessWidget {
           children: [
             _PromotionHeader(promo: promo),
             SizedBox(height: 2.h),
-            const Divider(height: 1, thickness: 1, color: AppColors.borderLight),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.borderLight,
+            ),
             SizedBox(height: 2.h),
 
             Text(
@@ -123,19 +127,23 @@ class _DetailsBody extends StatelessWidget {
               ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             SizedBox(height: 1.h),
-            PromotionInfoRow(
+            AppInfoRow(
               icon: Icons.calendar_today_outlined,
               label: 'Available Days',
               value: _availableDays(promo.validity),
             ),
-            PromotionInfoRow(
+            AppInfoRow(
               icon: Icons.access_time_rounded,
               label: 'Available Timings',
               value: _availableTimings(promo.validity),
             ),
 
             SizedBox(height: 1.5.h),
-            const Divider(height: 1, thickness: 1, color: AppColors.borderLight),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.borderLight,
+            ),
             SizedBox(height: 2.h),
 
             Text(
@@ -145,17 +153,17 @@ class _DetailsBody extends StatelessWidget {
               ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             SizedBox(height: 1.h),
-            PromotionInfoRow(
+            AppInfoRow(
               icon: Icons.person_outline,
               label: 'Used by',
               value: '${performance.usedByCustomers} Customers',
             ),
-            PromotionInfoRow(
+            AppInfoRow(
               icon: Icons.calendar_month_outlined,
               label: 'Total Bookings',
               value: '${performance.totalBookings}',
             ),
-            PromotionInfoRow(
+            AppInfoRow(
               icon: Icons.percent_rounded,
               label: 'Conversion Rate',
               value: '${performance.conversionRate}%',

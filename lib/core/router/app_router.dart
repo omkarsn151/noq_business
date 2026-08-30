@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:noq_business/features/auth/request_otp/presentation/screens/login_screen.dart';
 import 'package:noq_business/features/auth/verify_otp/presentation/screens/otp_verification_scren.dart';
 import 'package:noq_business/features/auth/register/presentation/screens/register_screen.dart';
+import 'package:noq_business/features/bookings/presentation/screens/booking_details_screen.dart';
 import 'package:noq_business/features/bookings/presentation/screens/bookings_screen.dart';
 import 'package:noq_business/features/business_setup/presentation/screens/business_operation_screen.dart';
 import 'package:noq_business/features/business_setup/presentation/screens/business_setup_screen.dart';
@@ -90,9 +91,14 @@ class AppRouter {
       ),
       GoRoute(
         path: '/promotions/:id',
-        builder: (context, state) => PromotionDetailsScreen(
-          promotionId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            PromotionDetailsScreen(promotionId: state.pathParameters['id']!),
+      ),
+      // Pushed full screen over the bottom nav, so it sits outside the shell.
+      GoRoute(
+        path: '/bookings/:id',
+        builder: (context, state) =>
+            BookingDetailsScreen(bookingId: state.pathParameters['id']!),
       ),
       // Bottom nav shell
       StatefulShellRoute.indexedStack(

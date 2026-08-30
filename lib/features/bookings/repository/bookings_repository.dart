@@ -1,5 +1,6 @@
 import 'package:noq_business/core/api/api_endpoints.dart';
 import 'package:noq_business/core/api/dio_client.dart';
+import 'package:noq_business/features/bookings/data/booking_detail_model.dart';
 import 'package:noq_business/features/bookings/data/booking_status.dart';
 import 'package:noq_business/features/bookings/data/bookings_page_model.dart';
 
@@ -22,5 +23,13 @@ class BookingsRepository {
     );
 
     return BookingsPageModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<BookingDetailModel> getBookingDetails(String bookingId) async {
+    final response = await _dioClient.get(
+      '${ApiEndpoints.getBookingDetails}$bookingId',
+    );
+
+    return BookingDetailModel.fromJson(response.data as Map<String, dynamic>);
   }
 }

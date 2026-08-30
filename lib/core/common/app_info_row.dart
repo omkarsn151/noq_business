@@ -3,12 +3,12 @@ import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 
 /// Labelled detail row - rounded icon badge, caption and the value below it.
-class PromotionInfoRow extends StatelessWidget {
+class AppInfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
 
-  const PromotionInfoRow({
+  const AppInfoRow({
     super.key,
     required this.icon,
     required this.label,

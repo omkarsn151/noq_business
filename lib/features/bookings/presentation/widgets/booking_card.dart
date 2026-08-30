@@ -16,6 +16,9 @@ class BookingCard extends StatelessWidget {
 
   /// Adds a 'Walk-in' chip next to the service details.
   final bool isWalkIn;
+
+  /// Opens the booking details screen.
+  final VoidCallback? onTap;
   final VoidCallback? onReject;
   final VoidCallback? onApprove;
 
@@ -28,16 +31,28 @@ class BookingCard extends StatelessWidget {
     required this.endTime,
     required this.status,
     this.isWalkIn = false,
+    this.onTap,
     this.onReject,
     this.onApprove,
   });
 
   @override
   Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.background,
+      borderRadius: BorderRadius.circular(3.w),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(3.w),
+        child: _buildCard(context),
+      ),
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 3.5.w, vertical: 1.8.h),
       decoration: BoxDecoration(
-        color: AppColors.background,
         borderRadius: BorderRadius.circular(3.w),
         border: Border.all(color: AppColors.borderLight),
       ),

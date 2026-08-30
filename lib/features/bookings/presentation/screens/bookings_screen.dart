@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/common/app_appbar.dart';
 import 'package:noq_business/core/common/app_pill_tab_bar.dart';
@@ -168,6 +169,7 @@ class _BookingsList extends StatelessWidget {
               endTime: formatRelativeDateTime(booking.scheduledEnd),
               status: booking.status ?? status,
               isWalkIn: booking.isWalkIn,
+              onTap: () => context.push('/bookings/${booking.id}'),
               // TODO: wire up once the approve/reject endpoints are available.
               onReject: () {},
               onApprove: () {},

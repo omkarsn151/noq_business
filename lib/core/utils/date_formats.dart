@@ -1,6 +1,16 @@
 const monthNames = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 /// 'Aug 26'
@@ -39,17 +49,20 @@ String formatDateTime(DateTime? date) {
   return '${formatDate(date)}, ${formatTime(date)}';
 }
 
+/// How many days [date] is away from today, in local time.
+int _daysFromToday(DateTime local) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(local.year, local.month, local.day);
+  return day.difference(today).inDays;
+}
+
 /// 'Today, 4:00 PM' / 'Tomorrow, 4:00 PM' / 'Jul 01, 6:00 PM'
 String formatRelativeDateTime(DateTime? date) {
   if (date == null) return '—';
   final local = date.toLocal();
 
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final day = DateTime(local.year, local.month, local.day);
-  final daysApart = day.difference(today).inDays;
-
-  final label = switch (daysApart) {
+  final label = switch (_daysFromToday(local)) {
     0 => 'Today',
     1 => 'Tomorrow',
     _ =>
@@ -57,4 +70,31 @@ String formatRelativeDateTime(DateTime? date) {
   };
 
   return '$label, ${formatTime(local)}';
+}
+
+/// 'Today' / 'Tomorrow' / 'Yesterday' / '23 Jun'
+String formatRelativeDay(DateTime? date) {
+  if (date == null) return '—';
+  final local = date.toLocal();
+
+  return switch (_daysFromToday(local)) {
+    0 => 'Today',
+    1 => 'Tomorrow',
+    -1 => 'Yesterday',
+    _ => '${local.day} ${monthNames[local.month - 1]}',
+  };
+}
+
+/// 'Today, 23 Jun' / 'Tomorrow, 23 Jun' / '23 Jun'
+String formatRelativeDate(DateTime? date) {
+  if (date == null) return '—';
+  final local = date.toLocal();
+  final dayMonth = '${local.day} ${monthNames[local.month - 1]}';
+
+  return switch (_daysFromToday(local)) {
+    0 => 'Today, $dayMonth',
+    1 => 'Tomorrow, $dayMonth',
+    -1 => 'Yesterday, $dayMonth',
+    _ => dayMonth,
+  };
 }
