@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:noq_business/core/utils/app_assets.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 
 class MainScreen extends StatelessWidget {
@@ -22,6 +24,7 @@ class MainScreen extends StatelessWidget {
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _onTap,
         elevation: 2,
+        shadowColor: AppColors.border,
         indicatorColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
@@ -42,40 +45,51 @@ class MainScreen extends StatelessWidget {
 
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.space_dashboard_outlined, color: AppColors.border),
-            selectedIcon: Icon(
-              Icons.space_dashboard_rounded,
-              color: AppColors.primary,
-            ),
+            icon: _NavIcon(AppAssets.navDashboard),
+            selectedIcon: _NavIcon(AppAssets.navDashboardFilled, selected: true),
             label: 'Dashboard',
           ),
           NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined, color: AppColors.border),
-            selectedIcon: Icon(
-              Icons.calendar_month_rounded,
-              color: AppColors.primary,
-            ),
+            icon: _NavIcon(AppAssets.navBookings),
+            selectedIcon: _NavIcon(AppAssets.navBookingsFilled, selected: true),
             label: 'Bookings',
           ),
           NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined, color: AppColors.border),
-            selectedIcon: Icon(
-              Icons.shopping_cart_rounded,
-              color: AppColors.primary,
-            ),
+            icon: _NavIcon(AppAssets.navWalkin),
+            selectedIcon: _NavIcon(AppAssets.navWalkinFilled, selected: true),
             label: 'Walk-in',
           ),
           NavigationDestination(
-            icon: Icon(Icons.analytics_outlined, color: AppColors.border),
-            selectedIcon: Icon(Icons.analytics, color: AppColors.primary),
-            label: 'Stats',
+            icon: _NavIcon(AppAssets.navInsights),
+            selectedIcon: _NavIcon(AppAssets.navInsightsFilled, selected: true),
+            label: 'Insights',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined, color: AppColors.border),
-            selectedIcon: Icon(Icons.settings, color: AppColors.primary),
+            icon: _NavIcon(AppAssets.navSettings),
+            selectedIcon: _NavIcon(AppAssets.navSettingsFilled, selected: true),
             label: 'Settings',
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NavIcon extends StatelessWidget {
+  final String asset;
+  final bool selected;
+
+  const _NavIcon(this.asset, {this.selected = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      asset,
+      width: 24,
+      height: 24,
+      colorFilter: ColorFilter.mode(
+        selected ? AppColors.primary : AppColors.border,
+        BlendMode.srcIn,
       ),
     );
   }
