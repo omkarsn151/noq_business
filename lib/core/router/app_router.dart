@@ -11,6 +11,7 @@ import 'package:noq_business/features/dashboard/presentation/screens/dashboard_s
 import 'package:noq_business/features/main_screen/main_screen.dart';
 import 'package:noq_business/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:noq_business/features/privacy/privacy_policy_screen.dart';
+import 'package:noq_business/features/promotions/data/promotion_details_model.dart';
 import 'package:noq_business/features/promotions/presentation/screens/create_promotion_screen.dart';
 import 'package:noq_business/features/promotions/presentation/screens/promotion_details_screen.dart';
 import 'package:noq_business/features/promotions/presentation/screens/promotions_screen.dart';
@@ -87,7 +88,8 @@ class AppRouter {
       ),
       GoRoute(
         path: '/create-promotion',
-        builder: (context, state) => const CreatePromotionScreen(),
+        builder: (context, state) =>
+            CreatePromotionScreen(promotion: state.extra as PromotionDetailModel?),
       ),
       GoRoute(
         path: '/promotions/:id',

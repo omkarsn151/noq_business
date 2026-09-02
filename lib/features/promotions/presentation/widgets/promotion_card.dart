@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
+import 'package:noq_business/features/promotions/data/promotion_status.dart';
+
+/// Options in the promotion card's `⋮` menu.
+enum PromotionCardAction { edit, pause, resume, publish }
 
 /// Promotion card - banner thumbnail, title, schedule and a footer with the
 /// usage and discount figures.
@@ -13,7 +17,10 @@ class PromotionCard extends StatelessWidget {
   /// Banner shown on the left; falls back to a placeholder when null.
   final String? imageUrl;
   final VoidCallback? onTap;
-  final VoidCallback? onMenuPressed;
+
+  /// Drives which quick actions the `⋮` menu offers.
+  final PromotionStatus status;
+  final ValueChanged<PromotionCardAction>? onAction;
 
   const PromotionCard({
     super.key,
@@ -21,10 +28,85 @@ class PromotionCard extends StatelessWidget {
     required this.schedule,
     required this.usedBy,
     required this.discount,
+    required this.status,
     this.imageUrl,
     this.onTap,
-    this.onMenuPressed,
+    this.onAction,
   });
+
+  List<PopupMenuEntry<PromotionCardAction>> _menuItems() {
+    final rows = <PopupMenuItem<PromotionCardAction>>[
+      _menuRow(PromotionCardAction.edit, Icons.edit_outlined, 'Edit'),
+    ];
+    switch (status) {
+      case PromotionStatus.draft:
+        rows.add(
+          _menuRow(
+            PromotionCardAction.publish,
+            Icons.publish_outlined,
+            'Publish',
+          ),
+        );
+        break;
+      case PromotionStatus.active:
+        rows.add(
+          _menuRow(
+            PromotionCardAction.pause,
+            Icons.pause_circle_outline,
+            'Pause',
+          ),
+        );
+        break;
+      case PromotionStatus.inactive:
+        rows.add(
+          _menuRow(
+            PromotionCardAction.resume,
+            Icons.play_circle_outline,
+            'Resume',
+          ),
+        );
+        break;
+      case PromotionStatus.expired:
+        break;
+    }
+
+    final entries = <PopupMenuEntry<PromotionCardAction>>[];
+    for (var i = 0; i < rows.length; i++) {
+      if (i > 0) {
+        entries.add(
+          const PopupMenuDivider(height: 1, thickness: 1, color: AppColors.borderLight),
+        );
+      }
+      entries.add(rows[i]);
+    }
+    return entries;
+  }
+
+  PopupMenuItem<PromotionCardAction> _menuRow(
+    PromotionCardAction value,
+    IconData icon,
+    String label,
+  ) {
+    return PopupMenuItem<PromotionCardAction>(
+      value: value,
+      height: 6.h,      
+      padding: EdgeInsets.symmetric(horizontal: 2.w),
+      child: Row(
+        children: [
+          Icon(icon, size: 18.sp, color: AppColors.textPrimary),
+          SizedBox(width: 3.w),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 15.sp,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,16 +162,23 @@ class PromotionCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 1.w),
-                InkWell(
-                  onTap: onMenuPressed,
-                  customBorder: const CircleBorder(),
-                  child: Padding(
-                    padding: EdgeInsets.all(1.w),
-                    child: Icon(
-                      Icons.more_vert,
-                      size: 17.sp,
-                      color: AppColors.textPrimary,
-                    ),
+                PopupMenuButton<PromotionCardAction>(
+                  onSelected: onAction,
+                  itemBuilder: (_) => _menuItems(),
+                  padding: EdgeInsets.all(1.w),
+                  menuPadding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
+                  color: AppColors.background,
+                  surfaceTintColor: AppColors.background,
+                  elevation: 4,
+                  shadowColor: AppColors.borderLight,
+                  position: PopupMenuPosition.under,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(2.5.w),
+                  ),
+                  icon: Icon(
+                    Icons.more_vert,
+                    size: 17.sp,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],

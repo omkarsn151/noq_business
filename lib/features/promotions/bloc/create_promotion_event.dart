@@ -58,3 +58,62 @@ class CreatePromotionSubmitted extends CreatePromotionEvent {
     publish,
   ];
 }
+
+/// Saves edits to an existing promo via `PUT /promos/{id}`.
+///
+/// The code is not editable once a promo exists, so it is never sent here.
+class UpdatePromotionSubmitted extends CreatePromotionEvent {
+  final String promotionId;
+  final String title;
+  final String? description;
+  final String? bannerUploadId;
+  final DiscountType discountType;
+  final num discountValue;
+  final num? minBookingAmount;
+  final num? maxDiscountAmount;
+  final DateTime validFrom;
+  final DateTime validUntil;
+  final int? totalRedemptionLimit;
+  final int? perCustomerLimit;
+
+  /// `true` publishes a draft in the same call; `null` leaves the status alone.
+  final bool? publish;
+
+  /// The pause switch. Only sent when editing an already published promo.
+  final bool? isActive;
+
+  const UpdatePromotionSubmitted({
+    required this.promotionId,
+    required this.title,
+    this.description,
+    this.bannerUploadId,
+    required this.discountType,
+    required this.discountValue,
+    this.minBookingAmount,
+    this.maxDiscountAmount,
+    required this.validFrom,
+    required this.validUntil,
+    this.totalRedemptionLimit,
+    this.perCustomerLimit,
+    this.publish,
+    this.isActive,
+  });
+
+  @override
+  List<Object?> get props => [
+    promotionId,
+    title,
+    description,
+    bannerUploadId,
+    discountType,
+    discountValue,
+    minBookingAmount,
+    maxDiscountAmount,
+    validFrom,
+    validUntil,
+    totalRedemptionLimit,
+    perCustomerLimit,
+    publish,
+    isActive,
+  ];
+}

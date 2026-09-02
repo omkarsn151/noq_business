@@ -19,8 +19,11 @@ import 'package:noq_business/features/business_setup/presentation/widgets/upload
 import 'package:noq_business/features/promotions/bloc/create_promotion_bloc.dart';
 import 'package:noq_business/features/promotions/bloc/create_promotion_event.dart';
 import 'package:noq_business/features/promotions/bloc/create_promotion_state.dart';
+import 'package:noq_business/features/promotions/bloc/promotion_details_bloc.dart';
+import 'package:noq_business/features/promotions/bloc/promotion_details_event.dart';
 import 'package:noq_business/features/promotions/bloc/promotions_bloc.dart';
 import 'package:noq_business/features/promotions/bloc/promotions_event.dart';
+import 'package:noq_business/features/promotions/data/promotion_details_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_status.dart';
 
@@ -30,6 +33,7 @@ class _UploadSlotState {
   final String? fileName;
   final String? errorMessage;
   final File? previewFile;
+  final String? previewUrl;
 
   const _UploadSlotState({
     this.status = UploadSlotStatus.idle,
@@ -37,11 +41,15 @@ class _UploadSlotState {
     this.fileName,
     this.errorMessage,
     this.previewFile,
+    this.previewUrl,
   });
 }
 
 class CreatePromotionScreen extends StatefulWidget {
-  const CreatePromotionScreen({super.key});
+  /// When non-null the screen opens in edit mode, prefilled from this promo.
+  final PromotionDetailModel? promotion;
+
+  const CreatePromotionScreen({super.key, this.promotion});
 
   @override
   State<CreatePromotionScreen> createState() => _CreatePromotionScreenState();
@@ -68,9 +76,66 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
   DateTime? _validFrom;
   DateTime? _validUntil;
   var _bannerSlot = const _UploadSlotState();
+  bool _isActive = false;
 
   bool get _isBannerUploading =>
       _bannerSlot.status == UploadSlotStatus.uploading;
+
+  PromotionDetailModel? get _promotion => widget.promotion;
+  bool get _isEditing => _promotion != null;
+
+  /// Editing a promo that is still a draft: keep the publish / save-as-draft
+  /// buttons instead of the active toggle.
+  bool get _isDraftEdit =>
+      _isEditing && _promotion!.status == PromotionStatus.draft;
+
+  @override
+  void initState() {
+    super.initState();
+    final promo = _promotion;
+    if (promo == null) return;
+
+    _titleController.text = promo.title;
+    _codeController.text = promo.code;
+    _descriptionController.text = promo.description ?? '';
+    _discountType = promo.discount.type;
+    _discountValueController.text = promo.discount.value;
+    _minBookingController.text = promo.discount.minBookingAmount ?? '';
+    if (_discountType == DiscountType.percent) {
+      _maxDiscountController.text = promo.discount.maxDiscountAmount ?? '';
+    }
+
+    final from = promo.validity.from?.toLocal();
+    final until = promo.validity.until?.toLocal();
+    if (from != null) {
+      _validFrom = from;
+      _validFromController.text = formatDateTime(from);
+    }
+    if (until != null) {
+      _validUntil = until;
+      _validUntilController.text = formatDateTime(until);
+    }
+
+    if (promo.limits.totalRedemptionLimit > 0) {
+      _totalRedemptionController.text =
+          promo.limits.totalRedemptionLimit.toString();
+    }
+    if (promo.limits.perCustomerLimit > 0) {
+      _perCustomerController.text = promo.limits.perCustomerLimit.toString();
+    }
+
+    _isActive = promo.isActive;
+
+    final banner = promo.banner;
+    if (banner != null) {
+      _bannerSlot = _UploadSlotState(
+        status: UploadSlotStatus.uploaded,
+        fileId: banner.id,
+        fileName: banner.fileName,
+        previewUrl: banner.url,
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -158,12 +223,17 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
 
   Future<void> _pickDateTime({required bool isFrom}) async {
     final now = DateTime.now();
+    final current = isFrom ? _validFrom : _validUntil;
     // 'Valid until' can never start before 'valid from', and neither can start
     // in the past.
-    final earliest = isFrom
+    var earliest = isFrom
         ? now
         : (_validFrom != null && _validFrom!.isAfter(now) ? _validFrom! : now);
-    final current = isFrom ? _validFrom : _validUntil;
+    // A running promo's stored dates are legitimately in the past when editing;
+    // let the vendor keep or move the existing value.
+    if (_isEditing && current != null && current.isBefore(earliest)) {
+      earliest = current;
+    }
     final initial = current != null && !current.isBefore(earliest)
         ? current
         : earliest;
@@ -191,8 +261,8 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
     );
 
     // The date picker can only bar whole days, so a time earlier today still
-    // has to be rejected here.
-    if (picked.isBefore(DateTime.now())) {
+    // has to be rejected here. When editing, past dates are allowed (see above).
+    if (!_isEditing && picked.isBefore(DateTime.now())) {
       AppSnackbar.error(
         context,
         '${isFrom ? 'Valid from' : 'Valid until'} cannot be in the past.',
@@ -239,7 +309,10 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
     final required = _requiredValidator(value, 'Valid from');
     if (required != null) return required;
     // Guards against the picked time going stale before the form is submitted.
-    if (_validFrom != null && _validFrom!.isBefore(DateTime.now())) {
+    // A promo being edited may already have started, so the check is create-only.
+    if (!_isEditing &&
+        _validFrom != null &&
+        _validFrom!.isBefore(DateTime.now())) {
       return 'Valid from cannot be in the past';
     }
     return null;
@@ -248,7 +321,9 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
   String? _validUntilValidator(String? value) {
     final required = _requiredValidator(value, 'Valid until');
     if (required != null) return required;
-    if (_validUntil != null && _validUntil!.isBefore(DateTime.now())) {
+    if (!_isEditing &&
+        _validUntil != null &&
+        _validUntil!.isBefore(DateTime.now())) {
       return 'Valid until cannot be in the past';
     }
     if (_validFrom != null &&
@@ -272,46 +347,100 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
   Future<void> _onSubmit({required bool publish}) async {
     if (_formKey.currentState?.validate() != true) return;
 
+    final title = _titleController.text.trim();
+    final isPublishedEdit = _isEditing && !_isDraftEdit;
+
     final confirmed = await AppAlertDialog.show(
       context,
-      icon: publish ? Icons.check_circle_outline : Icons.delete_outline,
-      title: publish ? 'Publish Promo' : 'Move to Draft',
-      message: publish
-          ? 'Are you sure you want to publish the promo of ${_titleController.text.trim()}?'
-          : 'Are you sure you want to move the ${_titleController.text.trim()} promo to draft',
-      primaryLabel: publish ? 'Yes, Publish' : 'Yes, Move',
+      icon: (publish || isPublishedEdit)
+          ? Icons.check_circle_outline
+          : Icons.drafts_outlined,
+      title: isPublishedEdit
+          ? 'Save Changes'
+          : publish
+          ? 'Publish Promo'
+          : _isEditing
+          ? 'Save as Draft'
+          : 'Move to Draft',
+      message: isPublishedEdit
+          ? 'Save changes to the $title promo?'
+          : publish
+          ? 'Are you sure you want to publish the promo of $title?'
+          : _isEditing
+          ? 'Save the $title promo as a draft?'
+          : 'Are you sure you want to move the $title promo to draft',
+      primaryLabel: isPublishedEdit
+          ? 'Save'
+          : publish
+          ? 'Yes, Publish'
+          : _isEditing
+          ? 'Yes, Save'
+          : 'Yes, Move',
       secondaryLabel: 'No',
     );
     if (!confirmed || !mounted) return;
 
-    context.read<CreatePromotionBloc>().add(
-      CreatePromotionSubmitted(
-        code: _codeController.text.trim(),
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim().isEmpty
-            ? null
-            : _descriptionController.text.trim(),
-        bannerUploadId: _bannerSlot.fileId,
-        discountType: _discountType,
-        discountValue: num.parse(_discountValueController.text.trim()),
-        minBookingAmount: _optionalNum(_minBookingController),
-        maxDiscountAmount: _optionalNum(_maxDiscountController),
-        validFrom: _validFrom!,
-        validUntil: _validUntil!,
-        totalRedemptionLimit: _optionalInt(_totalRedemptionController),
-        perCustomerLimit: _optionalInt(_perCustomerController),
-        publish: publish,
-      ),
-    );
+    final code = _codeController.text.trim();
+    final description = _descriptionController.text.trim().isEmpty
+        ? null
+        : _descriptionController.text.trim();
+    final discountValue = num.parse(_discountValueController.text.trim());
+    final bloc = context.read<CreatePromotionBloc>();
+
+    if (_isEditing) {
+      bloc.add(
+        UpdatePromotionSubmitted(
+          promotionId: _promotion!.id,
+          title: title,
+          description: description,
+          bannerUploadId: _bannerSlot.fileId,
+          discountType: _discountType,
+          discountValue: discountValue,
+          minBookingAmount: _optionalNum(_minBookingController),
+          maxDiscountAmount: _optionalNum(_maxDiscountController),
+          validFrom: _validFrom!,
+          validUntil: _validUntil!,
+          totalRedemptionLimit: _optionalInt(_totalRedemptionController),
+          perCustomerLimit: _optionalInt(_perCustomerController),
+          publish: _isDraftEdit ? (publish ? true : null) : null,
+          isActive: _isDraftEdit ? null : _isActive,
+        ),
+      );
+    } else {
+      bloc.add(
+        CreatePromotionSubmitted(
+          code: code,
+          title: title,
+          description: description,
+          bannerUploadId: _bannerSlot.fileId,
+          discountType: _discountType,
+          discountValue: discountValue,
+          minBookingAmount: _optionalNum(_minBookingController),
+          maxDiscountAmount: _optionalNum(_maxDiscountController),
+          validFrom: _validFrom!,
+          validUntil: _validUntil!,
+          totalRedemptionLimit: _optionalInt(_totalRedemptionController),
+          perCustomerLimit: _optionalInt(_perCustomerController),
+          publish: publish,
+        ),
+      );
+    }
   }
 
-  Future<void> _onCreated(bool published) async {
+  Future<void> _onSaved(CreatePromotionSuccess state) async {
     final title = _titleController.text.trim();
+    final isEdit = state.isEdit;
     await AppAlertDialog.show(
       context,
       icon: Icons.check_circle_outline,
-      title: published ? 'Published Promo' : 'Moved to Draft',
-      message: published
+      title: isEdit
+          ? 'Promo Updated'
+          : state.published
+          ? 'Published Promo'
+          : 'Moved to Draft',
+      message: isEdit
+          ? '$title promo has been updated successfully'
+          : state.published
           ? '$title promo has been published successfully'
           : '$title promo has been moved to draft successfully',
       primaryLabel: 'Done',
@@ -321,20 +450,29 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
 
     context.read<PromotionsBloc>().add(
       PromotionsRefreshRequested(
-        status: published ? PromotionStatus.active : PromotionStatus.draft,
+        status: isEdit
+            ? _promotion!.status
+            : state.published
+            ? PromotionStatus.active
+            : PromotionStatus.draft,
       ),
     );
+    if (isEdit) {
+      context.read<PromotionDetailsBloc>().add(
+        PromotionDetailsRequested(promotionId: _promotion!.id),
+      );
+    }
     context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AppAppBar(title: 'Create Promo'),
+      appBar: AppAppBar(title: _isEditing ? 'Edit Promo' : 'Create Promo'),
       body: BlocListener<CreatePromotionBloc, CreatePromotionState>(
         listener: (context, state) {
           if (state is CreatePromotionSuccess) {
-            _onCreated(state.published);
+            _onSaved(state);
           } else if (state is CreatePromotionFailure) {
             AppSnackbar.error(context, state.message);
           }
@@ -348,6 +486,24 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: 1.h),
+
+                  if (_isEditing && !_isDraftEdit) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Promo Active',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        Switch(
+                          value: _isActive,
+                          onChanged: (value) =>
+                              setState(() => _isActive = value),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 1.h),
+                  ],
 
                   AppTextField(
                     labelText: 'Promo Title',
@@ -364,6 +520,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
                     labelText: 'Promo Code',
                     hintText: 'Enter Promo Code',
                     controller: _codeController,
+                    readOnly: _isEditing,
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
@@ -521,6 +678,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
                     fileName: _bannerSlot.fileName,
                     errorMessage: _bannerSlot.errorMessage,
                     previewFile: _bannerSlot.previewFile,
+                    previewUrl: _bannerSlot.previewUrl,
                     onTap: _pickBanner,
                     onRemove: _removeBanner,
                   ),
@@ -531,12 +689,30 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
                     builder: (context, state) {
                       final isLoading = state is CreatePromotionLoading;
                       final isDisabled = isLoading || _isBannerUploading;
+
+                      // Editing a published promo: one 'Save Changes' button,
+                      // status is driven by the active toggle above.
+                      if (_isEditing && !_isDraftEdit) {
+                        return SizedBox(
+                          width: double.infinity,
+                          child: AppButton(
+                            label: 'Save Changes',
+                            isLoading: isLoading,
+                            onPressed: isDisabled
+                                ? null
+                                : () => _onSubmit(publish: false),
+                          ),
+                        );
+                      }
+
                       return Column(
                         children: [
                           SizedBox(
                             width: double.infinity,
                             child: AppButton(
-                              label: 'Create & Publish Promo',
+                              label: _isEditing
+                                  ? 'Save & Publish'
+                                  : 'Create & Publish Promo',
                               isLoading: isLoading,
                               onPressed: isDisabled
                                   ? null
@@ -560,7 +736,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
                                 ),
                               ),
                               child: Text(
-                                'Move to draft',
+                                _isEditing ? 'Save as Draft' : 'Move to draft',
                                 style: TextStyle(
                                   fontSize: 16.sp,
                                   fontWeight: FontWeight.w600,

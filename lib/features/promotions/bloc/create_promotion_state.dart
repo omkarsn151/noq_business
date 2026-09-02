@@ -19,10 +19,13 @@ class CreatePromotionSuccess extends CreatePromotionState {
   /// Which action succeeded, so the screen can show the matching dialog.
   final bool published;
 
-  const CreatePromotionSuccess({required this.published});
+  /// True when this came from editing an existing promo rather than creating one.
+  final bool isEdit;
+
+  const CreatePromotionSuccess({required this.published, this.isEdit = false});
 
   @override
-  List<Object?> get props => [published];
+  List<Object?> get props => [published, isEdit];
 }
 
 class CreatePromotionFailure extends CreatePromotionState {

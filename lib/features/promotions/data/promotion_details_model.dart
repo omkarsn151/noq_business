@@ -76,6 +76,10 @@ class PromotionDetailModel {
   });
 
   factory PromotionDetailModel.fromJson(Map<String, dynamic> json) {
+    final validity = PromotionValidity.fromJson(
+      json['validity'] as Map<String, dynamic>?,
+    );
+    final isActive = json['is_active'] as bool? ?? false;
     return PromotionDetailModel(
       id: json['id']?.toString() ?? '',
       code: json['code']?.toString() ?? '',
@@ -85,12 +89,14 @@ class PromotionDetailModel {
       discount: PromotionDiscount.fromJson(
         json['discount'] as Map<String, dynamic>?,
       ),
-      validity: PromotionValidity.fromJson(
-        json['validity'] as Map<String, dynamic>?,
-      ),
+      validity: validity,
       limits: PromotionLimits.fromJson(json['limits'] as Map<String, dynamic>?),
-      status: PromotionStatus.fromValue(json['status'] as String?),
-      isActive: json['is_active'] as bool? ?? false,
+      status: resolvePromotionStatus(
+        rawStatus: json['status'] as String?,
+        isActive: isActive,
+        validUntil: validity.until,
+      ),
+      isActive: isActive,
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
     );

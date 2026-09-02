@@ -19,3 +19,18 @@ enum PromotionStatus {
     );
   }
 }
+
+/// The wire `status` is only `draft` | `published`; the four [PromotionStatus]
+/// values are the list tabs. This maps `status` + the pause switch + the end
+/// date to the tab the promo actually belongs to.
+PromotionStatus resolvePromotionStatus({
+  required String? rawStatus,
+  required bool isActive,
+  DateTime? validUntil,
+}) {
+  if (rawStatus != 'published') return PromotionStatus.draft;
+  if (validUntil != null && validUntil.toUtc().isBefore(DateTime.now().toUtc())) {
+    return PromotionStatus.expired;
+  }
+  return isActive ? PromotionStatus.active : PromotionStatus.inactive;
+}

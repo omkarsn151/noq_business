@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
+import 'package:noq_business/core/common/app_alert_dialog.dart';
 import 'package:noq_business/core/common/app_appbar.dart';
 import 'package:noq_business/core/common/app_button.dart';
+import 'package:noq_business/core/common/app_snackbar.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/core/utils/date_formats.dart';
+import 'package:noq_business/features/promotions/bloc/promotion_action_bloc.dart';
+import 'package:noq_business/features/promotions/bloc/promotion_action_event.dart';
+import 'package:noq_business/features/promotions/bloc/promotion_action_state.dart';
 import 'package:noq_business/features/promotions/bloc/promotion_details_bloc.dart';
 import 'package:noq_business/features/promotions/bloc/promotion_details_event.dart';
 import 'package:noq_business/features/promotions/bloc/promotion_details_state.dart';
+import 'package:noq_business/features/promotions/bloc/promotions_bloc.dart';
+import 'package:noq_business/features/promotions/bloc/promotions_event.dart';
 import 'package:noq_business/features/promotions/data/promotion_details_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_status.dart';
@@ -53,26 +61,41 @@ class _PromotionDetailsScreenState extends State<PromotionDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const AppAppBar(title: 'Promo Details'),
-      body: SafeArea(
-        child: BlocBuilder<PromotionDetailsBloc, PromotionDetailsState>(
-          builder: (context, state) {
-            if (state is PromotionDetailsInitial ||
-                state is PromotionDetailsLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: BlocListener<PromotionActionBloc, PromotionActionState>(
+        listener: (context, state) {
+          if (state is PromotionActionSuccess) {
+            AppSnackbar.success(context, _actionDoneMessage(state.kind));
+            context.read<PromotionDetailsBloc>().add(
+              PromotionDetailsRequested(promotionId: widget.promotionId),
+            );
+            context.read<PromotionsBloc>().add(
+              const PromotionsRefreshRequested(status: PromotionStatus.active),
+            );
+          } else if (state is PromotionActionFailure) {
+            AppSnackbar.error(context, state.message);
+          }
+        },
+        child: SafeArea(
+          child: BlocBuilder<PromotionDetailsBloc, PromotionDetailsState>(
+            builder: (context, state) {
+              if (state is PromotionDetailsInitial ||
+                  state is PromotionDetailsLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (state is PromotionDetailsFailure) {
-              return _DetailsMessage(
-                message: state.message,
-                onRetry: () => context.read<PromotionDetailsBloc>().add(
-                  PromotionDetailsRequested(promotionId: widget.promotionId),
-                ),
-              );
-            }
+              if (state is PromotionDetailsFailure) {
+                return _DetailsMessage(
+                  message: state.message,
+                  onRetry: () => context.read<PromotionDetailsBloc>().add(
+                    PromotionDetailsRequested(promotionId: widget.promotionId),
+                  ),
+                );
+              }
 
-            final details = (state as PromotionDetailsSuccess).details;
-            return _DetailsBody(details: details);
-          },
+              final details = (state as PromotionDetailsSuccess).details;
+              return _DetailsBody(details: details);
+            },
+          ),
         ),
       ),
       bottomNavigationBar:
@@ -81,7 +104,7 @@ class _PromotionDetailsScreenState extends State<PromotionDetailsScreen> {
               if (state is! PromotionDetailsSuccess) {
                 return const SizedBox.shrink();
               }
-              return const _DetailsActions();
+              return _DetailsActions(promo: state.details.promo);
             },
           ),
     );
@@ -310,11 +333,105 @@ class _DiscountChip extends StatelessWidget {
   }
 }
 
+/// Toast copy shown after a quick pause / resume / publish succeeds.
+String _actionDoneMessage(PromotionActionKind kind) {
+  switch (kind) {
+    case PromotionActionKind.pause:
+      return 'Promo paused';
+    case PromotionActionKind.resume:
+      return 'Promo resumed';
+    case PromotionActionKind.publish:
+      return 'Promo published';
+  }
+}
+
+/// The secondary (status) action available for a promo, by its tab bucket.
+class _SecondaryAction {
+  final String label;
+  final PromotionActionKind kind;
+  final bool? isActive;
+  final bool? publish;
+  final String confirmTitle;
+  final String confirmMessage;
+
+  const _SecondaryAction({
+    required this.label,
+    required this.kind,
+    this.isActive,
+    this.publish,
+    required this.confirmTitle,
+    required this.confirmMessage,
+  });
+
+  static _SecondaryAction? forPromo(PromotionDetailModel promo) {
+    switch (promo.status) {
+      case PromotionStatus.draft:
+        return _SecondaryAction(
+          label: 'Publish',
+          kind: PromotionActionKind.publish,
+          publish: true,
+          confirmTitle: 'Publish Promo',
+          confirmMessage:
+              'Are you sure you want to publish the ${promo.title} promo?',
+        );
+      case PromotionStatus.active:
+        return _SecondaryAction(
+          label: 'Pause',
+          kind: PromotionActionKind.pause,
+          isActive: false,
+          confirmTitle: 'Pause Promo',
+          confirmMessage:
+              'Customers will not be able to use the ${promo.title} promo until you resume it. Continue?',
+        );
+      case PromotionStatus.inactive:
+        return _SecondaryAction(
+          label: 'Resume',
+          kind: PromotionActionKind.resume,
+          isActive: true,
+          confirmTitle: 'Resume Promo',
+          confirmMessage:
+              'Customers will be able to use the ${promo.title} promo again. Continue?',
+        );
+      case PromotionStatus.expired:
+        // Resume is API-blocked while expired; the vendor extends the end date
+        // through Edit instead.
+        return null;
+    }
+  }
+}
+
 class _DetailsActions extends StatelessWidget {
-  const _DetailsActions();
+  final PromotionDetailModel promo;
+
+  const _DetailsActions({required this.promo});
+
+  Future<void> _runSecondary(
+    BuildContext context,
+    _SecondaryAction action,
+  ) async {
+    final confirmed = await AppAlertDialog.show(
+      context,
+      icon: Icons.check_circle_outline,
+      title: action.confirmTitle,
+      message: action.confirmMessage,
+      primaryLabel: 'Yes',
+      secondaryLabel: 'No',
+    );
+    if (!confirmed || !context.mounted) return;
+    context.read<PromotionActionBloc>().add(
+      PromotionActionRequested(
+        promotionId: promo.id,
+        kind: action.kind,
+        isActive: action.isActive,
+        publish: action.publish,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final secondary = _SecondaryAction.forPromo(promo);
+
     return Container(
       padding: EdgeInsets.fromLTRB(5.w, 1.5.h, 5.w, 2.h),
       decoration: const BoxDecoration(
@@ -325,31 +442,48 @@ class _DetailsActions extends StatelessWidget {
         top: false,
         child: Row(
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 1.8.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(3.w),
-                  ),
-                  side: const BorderSide(color: AppColors.primary),
-                ),
-                child: Text(
-                  'Move to Draft',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
+            if (secondary != null) ...[
+              Expanded(
+                child: BlocBuilder<PromotionActionBloc, PromotionActionState>(
+                  builder: (context, state) {
+                    final busy = state is PromotionActionInProgress;
+                    return OutlinedButton(
+                      onPressed: busy
+                          ? null
+                          : () => _runSecondary(context, secondary),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 1.8.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(3.w),
+                        ),
+                        side: const BorderSide(color: AppColors.primary),
+                      ),
+                      child: busy
+                          ? SizedBox(
+                              width: 18.sp,
+                              height: 18.sp,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              secondary.label,
+                              style: TextStyle(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                    );
+                  },
                 ),
               ),
-            ),
-            SizedBox(width: 3.w),
+              SizedBox(width: 3.w),
+            ],
             Expanded(
               child: AppButton(
                 label: 'Edit Promo',
-                onPressed: () {},
+                onPressed: () => context.push('/create-promotion', extra: promo),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.background,

@@ -72,6 +72,9 @@ class ApiEndpoints {
 
   static const String getPromotionDetails = "v1/business/promos/";
 
+  // id appended by caller
+  static const String updatePromotion = "v1/business/promos/";
+
   //====================Bookings====================
   static const String getBookings = "v1/business/bookings";
 
