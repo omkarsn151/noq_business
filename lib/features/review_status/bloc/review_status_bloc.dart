@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:noq_business/core/api/api_exception.dart';
+import 'package:noq_business/core/services/secure_storage_service.dart';
 import 'package:noq_business/features/review_status/bloc/review_status_event.dart';
 import 'package:noq_business/features/review_status/bloc/review_status_state.dart';
 import 'package:noq_business/features/review_status/repository/review_status_repository.dart';
@@ -18,6 +19,10 @@ class ReviewStatusBloc extends Bloc<ReviewStatusEvent, ReviewStatusState> {
     emit(const ReviewStatusLoading());
     try {
       final data = await _repository.getReviewStatus();
+
+      if (data.reviewStatus != null) {
+        await SecureStorageService().saveBusinessStatus(data.reviewStatus);
+      }
       emit(ReviewStatusLoaded(data: data));
     } on ApiException catch (e) {
       emit(ReviewStatusFailure(message: e.message));
