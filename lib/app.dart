@@ -12,6 +12,8 @@ import 'package:noq_business/features/business_setup/repository/business_setup_r
 import 'package:noq_business/features/bookings/bloc/booking_details_bloc.dart';
 import 'package:noq_business/features/bookings/bloc/bookings_bloc.dart';
 import 'package:noq_business/features/bookings/repository/bookings_repository.dart';
+import 'package:noq_business/features/dashboard/bloc/dashboard_bloc.dart';
+import 'package:noq_business/features/dashboard/repository/dashboard_repository.dart';
 import 'package:noq_business/features/promotions/bloc/create_promotion_bloc.dart';
 import 'package:noq_business/features/promotions/bloc/promotion_action_bloc.dart';
 import 'package:noq_business/features/promotions/bloc/promotion_details_bloc.dart';
@@ -96,6 +98,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<CreateWalkinBloc>(
           create: (_) => CreateWalkinBloc(WalkinRepository()),
+        ),
+        BlocProvider<DashboardBloc>(
+          create: (_) => DashboardBloc(DashboardRepository()),
         ),
       ],
       child: Sizer(

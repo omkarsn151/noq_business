@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sizer/sizer.dart';
 import 'package:go_router/go_router.dart';
+import 'package:noq_business/core/common/app_alert_dialog.dart';
 import 'package:noq_business/core/common/app_button.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/features/staff/bloc/staff_bloc.dart';
 import 'package:noq_business/features/staff/bloc/staff_event.dart';
 import 'package:noq_business/features/staff/bloc/staff_state.dart';
+import 'package:noq_business/features/staff/data/staff_model.dart';
 import 'package:noq_business/features/staff/presentation/widgets/add_staff_tile.dart';
 import 'package:noq_business/features/staff/presentation/widgets/staff_tile.dart';
 
@@ -22,6 +24,22 @@ class _StaffSectionState extends State<StaffSection> {
   void initState() {
     super.initState();
     context.read<StaffBloc>().add(const StaffRequested());
+  }
+
+  Future<void> _confirmDelete(BuildContext context, StaffModel staff) async {
+    final confirmed = await AppAlertDialog.show(
+      context,
+      icon: Icons.delete_outline,
+      title: 'Delete Staff',
+      message: 'Are you sure you want to delete "${staff.name}"?',
+      primaryLabel: 'Delete',
+      secondaryLabel: 'Cancel',
+      iconColor: AppColors.error,
+      iconBackgroundColor: AppColors.primaryLight,
+    );
+    if (confirmed && context.mounted) {
+      context.read<StaffBloc>().add(StaffDeleteRequested(staffId: staff.id));
+    }
   }
 
   @override
@@ -76,9 +94,12 @@ class _StaffSectionState extends State<StaffSection> {
               if (index == staff.length) {
                 return AddStaffTile(onTap: () => context.push('/add-staff'));
               }
+              final member = staff[index];
               return StaffTile(
-                staff: staff[index],
-                onTap: () => context.push('/add-staff', extra: staff[index]),
+                name: member.name,
+                photoUrl: member.photo?.url,
+                onTap: () => context.push('/add-staff', extra: member),
+                onDelete: () => _confirmDelete(context, member),
               );
             },
           ),

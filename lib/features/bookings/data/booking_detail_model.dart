@@ -1,15 +1,5 @@
+import 'package:noq_business/core/utils/currency_format.dart';
 import 'package:noq_business/features/bookings/data/booking_detail_status.dart';
-
-/// '₹499' / '₹499.50' / 'USD 12.00' - amounts arrive as decimal strings so the
-/// trailing '.00' is dropped rather than reformatted as a double.
-String _amountLabel(String value, String currencyCode) {
-  var amount = value.trim();
-  if (amount.isEmpty) amount = '0';
-  if (amount.endsWith('.00')) {
-    amount = amount.substring(0, amount.length - 3);
-  }
-  return currencyCode == 'INR' ? '₹$amount' : '$currencyCode $amount';
-}
 
 /// True when a decimal string holds anything above zero.
 bool _isPositive(String value) => (double.tryParse(value) ?? 0) > 0;
@@ -122,7 +112,7 @@ class BookingDetailService {
     );
   }
 
-  String get priceLabel => _amountLabel(price, currencyCode);
+  String get priceLabel => formatAmount(price, currencyCode);
 
   String get durationLabel => '$durationMinutes min';
 }
@@ -255,13 +245,13 @@ class BookingDetailPayment {
     );
   }
 
-  String get subtotalLabel => _amountLabel(subtotal, currencyCode);
+  String get subtotalLabel => formatAmount(subtotal, currencyCode);
 
-  String get discountLabel => '-${_amountLabel(discount, currencyCode)}';
+  String get discountLabel => '-${formatAmount(discount, currencyCode)}';
 
-  String get platformFeeLabel => _amountLabel(platformFee, currencyCode);
+  String get platformFeeLabel => formatAmount(platformFee, currencyCode);
 
-  String get totalLabel => _amountLabel(total, currencyCode);
+  String get totalLabel => formatAmount(total, currencyCode);
 
   bool get hasDiscount => _isPositive(discount);
 

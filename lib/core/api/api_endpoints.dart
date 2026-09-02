@@ -85,4 +85,7 @@ class ApiEndpoints {
 
   static const String createWalkin = "v1/business/walk-ins";
 
+  //====================Dashboard====================
+  static const String getDashboard = "v1/business/dashboard";
+
 }
