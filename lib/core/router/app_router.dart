@@ -10,7 +10,6 @@ import 'package:noq_business/features/review_status/presentation/screens/review_
 import 'package:noq_business/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:noq_business/features/gallery/presentation/screens/gallery_screen.dart';
 import 'package:noq_business/features/main_screen/main_screen.dart';
-import 'package:noq_business/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:noq_business/features/privacy/privacy_policy_screen.dart';
 import 'package:noq_business/features/promotions/data/promotion_details_model.dart';
 import 'package:noq_business/features/promotions/presentation/screens/create_promotion_screen.dart';
@@ -53,10 +52,6 @@ class AppRouter {
           final phoneNumber = state.extra as String? ?? '';
           return OtpVerificationScren(phoneNumber: phoneNumber);
         },
-      ),
-      GoRoute(
-        path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/business-setup',
