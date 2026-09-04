@@ -10,12 +10,21 @@ class DashboardSectionHeader extends StatelessWidget {
   final VoidCallback? onActionTap;
   final bool showLiveIndicator;
 
+  /// Caption shown next to the dot when [showLiveIndicator] is set, e.g. 'LIVE'
+  /// or the shop's 'OPEN' / 'CLOSED' state.
+  final String indicatorLabel;
+
+  /// Dot and caption colour for the indicator above.
+  final Color indicatorColor;
+
   const DashboardSectionHeader({
     super.key,
     required this.title,
     this.actionLabel,
     this.onActionTap,
     this.showLiveIndicator = false,
+    this.indicatorLabel = 'LIVE',
+    this.indicatorColor = AppColors.live,
   });
 
   @override
@@ -31,16 +40,16 @@ class DashboardSectionHeader extends StatelessWidget {
               Container(
                 width: 2.w,
                 height: 2.w,
-                decoration: const BoxDecoration(
-                  color: AppColors.live,
+                decoration: BoxDecoration(
+                  color: indicatorColor,
                   shape: BoxShape.circle,
                 ),
               ),
               SizedBox(width: 1.5.w),
               Text(
-                'LIVE',
+                indicatorLabel,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.live,
+                  color: indicatorColor,
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w700,
                 ),

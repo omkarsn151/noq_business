@@ -11,11 +11,16 @@ class DashboardHeader {
   /// IANA timezone of the shop, e.g. 'Asia/Kolkata'.
   final String timezone;
 
+  /// Whether the shop is open right now, per its opening hours. Drives the
+  /// OPEN / CLOSED pill on the Staff section header.
+  final bool isOpen;
+
   const DashboardHeader({
     this.businessId = '',
     this.businessName = '',
     this.date,
     this.timezone = '',
+    this.isOpen = false,
   });
 
   factory DashboardHeader.fromJson(Map<String, dynamic>? json) {
@@ -25,6 +30,7 @@ class DashboardHeader {
       businessName: json['business_name']?.toString() ?? '',
       date: DateTime.tryParse(json['date']?.toString() ?? ''),
       timezone: json['timezone']?.toString() ?? '',
+      isOpen: json['is_open'] == true,
     );
   }
 }
@@ -99,6 +105,61 @@ class DashboardRevenue {
   }
 
   bool get isPositive => (changePercent ?? 0) >= 0;
+}
+
+/// One day's bar in the Revenue card's month-to-date graph.
+class DashboardRevenueDay {
+  /// The calendar day this bar stands for, in the shop's timezone.
+  final DateTime? date;
+
+  /// Decimal string, e.g. '450.00' or '0.00' on a day with no takings.
+  final String amount;
+
+  const DashboardRevenueDay({this.date, this.amount = '0'});
+
+  factory DashboardRevenueDay.fromJson(Map<String, dynamic> json) {
+    return DashboardRevenueDay(
+      date: DateTime.tryParse(json['date']?.toString() ?? ''),
+      amount: json['amount']?.toString() ?? '0',
+    );
+  }
+
+  double get value => double.tryParse(amount) ?? 0;
+}
+
+/// The month-to-date revenue graph drawn inside the Revenue card. [days] runs
+/// from the 1st of [month] to today, one entry per day including the empty ones.
+class DashboardRevenueGraph {
+  /// 'YYYY-MM' of the month being shown.
+  final String month;
+  final String currencyCode;
+
+  /// Decimal string - the sum of every day in [days].
+  final String total;
+  final List<DashboardRevenueDay> days;
+
+  const DashboardRevenueGraph({
+    this.month = '',
+    this.currencyCode = '',
+    this.total = '0',
+    this.days = const [],
+  });
+
+  factory DashboardRevenueGraph.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const DashboardRevenueGraph();
+    return DashboardRevenueGraph(
+      month: json['month']?.toString() ?? '',
+      currencyCode: json['currency_code']?.toString() ?? '',
+      total: json['total']?.toString() ?? '0',
+      days: (json['days'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map(DashboardRevenueDay.fromJson)
+          .toList(),
+    );
+  }
+
+  /// Just the daily amounts, in calendar order - what the chart painter needs.
+  List<double> get amounts => days.map((day) => day.value).toList();
 }
 
 /// The small strip - requests still waiting for the owner to answer. Covers
@@ -253,12 +314,14 @@ class DashboardBookingItem {
 class DashboardModel {
   final DashboardHeader header;
   final DashboardSummary summary;
+  final DashboardRevenueGraph revenueGraph;
   final DashboardStaff staff;
   final List<DashboardBookingItem> upcomingBookings;
 
   const DashboardModel({
     this.header = const DashboardHeader(),
     this.summary = const DashboardSummary(),
+    this.revenueGraph = const DashboardRevenueGraph(),
     this.staff = const DashboardStaff(),
     this.upcomingBookings = const [],
   });
@@ -272,6 +335,9 @@ class DashboardModel {
       ),
       summary: DashboardSummary.fromJson(
         data['summary'] as Map<String, dynamic>?,
+      ),
+      revenueGraph: DashboardRevenueGraph.fromJson(
+        data['revenue_graph'] as Map<String, dynamic>?,
       ),
       staff: DashboardStaff.fromJson(data['staff'] as Map<String, dynamic>?),
       upcomingBookings: (data['upcoming_bookings'] as List? ?? [])

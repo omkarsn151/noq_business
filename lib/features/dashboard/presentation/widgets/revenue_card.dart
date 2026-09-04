@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
+import 'package:noq_business/features/dashboard/presentation/widgets/revenue_sparkline.dart';
 
-/// Outlined card showing a metric label with a growth chip and its value.
+/// Outlined card showing a metric label with a growth chip, its value and a
+/// month-to-date bar chart.
 class RevenueCard extends StatelessWidget {
   final String label;
   final String value;
@@ -11,12 +13,16 @@ class RevenueCard extends StatelessWidget {
   final String? growthLabel;
   final bool isPositive;
 
+  /// One amount per day this month. Empty hides the chart.
+  final List<double> chartValues;
+
   const RevenueCard({
     super.key,
     required this.label,
     required this.value,
     required this.growthLabel,
     this.isPositive = true,
+    this.chartValues = const [],
   });
 
   @override
@@ -95,6 +101,10 @@ class RevenueCard extends StatelessWidget {
           ),
           SizedBox(height: 1.5.h),
           Text(value, style: Theme.of(context).textTheme.headlineLarge),
+          if (chartValues.isNotEmpty) ...[
+            SizedBox(height: 1.5.h),
+            RevenueSparkline(values: chartValues),
+          ],
         ],
       ),
     );

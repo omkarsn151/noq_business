@@ -133,6 +133,7 @@ class _DashboardContent extends StatelessWidget {
                       value: summary.revenue.valueLabel,
                       growthLabel: summary.revenue.growthLabel,
                       isPositive: summary.revenue.isPositive,
+                      chartValues: dashboard.revenueGraph.amounts,
                     ),
                   ),
                 ],
@@ -144,9 +145,13 @@ class _DashboardContent extends StatelessWidget {
               value: summary.pendingBookings.countLabel,
             ),
             SizedBox(height: 3.h),
-            const DashboardSectionHeader(
+            DashboardSectionHeader(
               title: 'Staff',
               showLiveIndicator: true,
+              indicatorLabel: dashboard.header.isOpen ? 'OPEN' : 'CLOSED',
+              indicatorColor: dashboard.header.isOpen
+                  ? AppColors.success
+                  : AppColors.textSecondary,
             ),
             SizedBox(height: 1.5.h),
             if (staff.isEmpty)
