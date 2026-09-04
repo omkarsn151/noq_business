@@ -114,7 +114,7 @@ class _ProfileContent extends StatelessWidget {
             SizedBox(height: 2.h),
             OverviewGalleryCard(
               gallery: overview.gallery,
-              onManageTap: () {},
+              onManageTap: () => context.push('/gallery'),
               onAddTap: () {},
             ),
             SizedBox(height: 2.h),

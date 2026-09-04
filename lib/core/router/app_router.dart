@@ -8,6 +8,7 @@ import 'package:noq_business/features/business_setup/presentation/screens/busine
 import 'package:noq_business/features/business_setup/presentation/screens/business_setup_screen.dart';
 import 'package:noq_business/features/review_status/presentation/screens/review_status_screen.dart';
 import 'package:noq_business/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:noq_business/features/gallery/presentation/screens/gallery_screen.dart';
 import 'package:noq_business/features/main_screen/main_screen.dart';
 import 'package:noq_business/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:noq_business/features/privacy/privacy_policy_screen.dart';
@@ -101,6 +102,10 @@ class AppRouter {
       GoRoute(
         path: '/business-profile',
         builder: (context, state) => const BusinessProfileScreen(),
+      ),
+      GoRoute(
+        path: '/gallery',
+        builder: (context, state) => const GalleryScreen(),
       ),
       GoRoute(
         path: '/bookings/:id',

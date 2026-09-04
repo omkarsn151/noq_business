@@ -91,4 +91,6 @@ class ApiEndpoints {
   //====================Business Profile Overview====================
   static const String getBusinessOverview = "v1/business/overview";
 
+  static const String getBusinessGallery = "v1/business/gallery";
+
 }
