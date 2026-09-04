@@ -104,7 +104,8 @@ class _ProfileContent extends StatelessWidget {
             ReviewsCard(
               rating: overview.stats.rating,
               reviews: overview.reviews,
-              onViewAllTap: () {},
+              onViewAllTap: () =>
+                  context.push('/ratings', extra: overview.stats.rating),
             ),
             SizedBox(height: 2.h),
             OverviewServicesCard(

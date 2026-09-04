@@ -23,6 +23,8 @@ import 'package:noq_business/features/promotions/bloc/promotions_bloc.dart';
 import 'package:noq_business/features/profile/bloc/business_profile_bloc.dart';
 import 'package:noq_business/features/profile/repository/business_profile_repository.dart';
 import 'package:noq_business/features/promotions/repository/promotions_repository.dart';
+import 'package:noq_business/features/ratings/bloc/ratings_bloc.dart';
+import 'package:noq_business/features/ratings/repository/ratings_repository.dart';
 import 'package:noq_business/features/review_status/bloc/review_status_bloc.dart';
 import 'package:noq_business/features/review_status/repository/review_status_repository.dart';
 import 'package:noq_business/features/categories/bloc/categories_bloc.dart';
@@ -111,6 +113,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<GalleryBloc>(
           create: (_) => GalleryBloc(GalleryRepository()),
+        ),
+        BlocProvider<RatingsBloc>(
+          create: (_) => RatingsBloc(RatingsRepository()),
         ),
       ],
       child: Sizer(

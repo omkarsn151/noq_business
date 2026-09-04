@@ -16,7 +16,9 @@ import 'package:noq_business/features/promotions/data/promotion_details_model.da
 import 'package:noq_business/features/promotions/presentation/screens/create_promotion_screen.dart';
 import 'package:noq_business/features/promotions/presentation/screens/promotion_details_screen.dart';
 import 'package:noq_business/features/promotions/presentation/screens/promotions_screen.dart';
+import 'package:noq_business/features/profile/data/business_overview_model.dart';
 import 'package:noq_business/features/profile/presentation/screens/business_profile_screen.dart';
+import 'package:noq_business/features/ratings/presentation/screens/ratings_and_reviews_screen.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/service/presentation/screens/add_service_screen.dart';
 import 'package:noq_business/features/service/presentation/screens/services_screen.dart';
@@ -116,6 +118,11 @@ class AppRouter {
       GoRoute(
         path: '/staff',
         builder: (context, state) => const StaffListScreen(),
+      ),
+      GoRoute(
+        path: '/ratings',
+        builder: (context, state) =>
+            RatingsAndReviewsScreen(summary: state.extra as OverviewRating?),
       ),
       GoRoute(
         path: '/bookings/:id',

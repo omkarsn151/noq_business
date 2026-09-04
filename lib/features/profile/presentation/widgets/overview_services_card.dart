@@ -33,9 +33,9 @@ class OverviewServicesCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 1.h),
               child: Text(
                 'No services added yet',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
             )
           else
@@ -48,7 +48,9 @@ class OverviewServicesCard extends StatelessWidget {
                 final service = services.items[index];
                 return _ServiceRow(
                   service: service,
-                  onTap: onServiceTap == null ? null : () => onServiceTap!(service),
+                  onTap: onServiceTap == null
+                      ? null
+                      : () => onServiceTap!(service),
                 );
               },
             ),
@@ -60,7 +62,10 @@ class OverviewServicesCard extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 backgroundColor: AppColors.primaryLight,
-                side: BorderSide(color: AppColors.primary, style: BorderStyle.solid),
+                side: BorderSide(
+                  color: AppColors.primary,
+                  style: BorderStyle.solid,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.w),
                 ),
@@ -107,17 +112,27 @@ class _ServiceRow extends StatelessWidget {
                   ? Image.network(
                       service.thumbnailUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) =>
-                          Icon(Icons.content_cut, size: 16.sp, color: AppColors.primary),
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.content_cut,
+                        size: 16.sp,
+                        color: AppColors.primary,
+                      ),
                     )
-                  : Icon(Icons.content_cut, size: 16.sp, color: AppColors.primary),
+                  : Icon(
+                      Icons.content_cut,
+                      size: 16.sp,
+                      color: AppColors.primary,
+                    ),
             ),
             SizedBox(width: 3.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(service.name, style: Theme.of(context).textTheme.bodyLarge),
+                  Text(
+                    service.name,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
                   Text(
                     service.subtitleLabel,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
