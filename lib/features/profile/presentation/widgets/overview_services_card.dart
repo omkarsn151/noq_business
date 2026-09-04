@@ -113,13 +113,13 @@ class _ServiceRow extends StatelessWidget {
                       service.thumbnailUrl!,
                       fit: BoxFit.cover,
                       errorBuilder: (_, _, _) => Icon(
-                        Icons.content_cut,
+                        Icons.design_services_rounded,
                         size: 16.sp,
                         color: AppColors.primary,
                       ),
                     )
                   : Icon(
-                      Icons.content_cut,
+                      Icons.design_services_rounded,
                       size: 16.sp,
                       color: AppColors.primary,
                     ),

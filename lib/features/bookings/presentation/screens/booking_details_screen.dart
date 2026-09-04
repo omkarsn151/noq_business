@@ -358,23 +358,19 @@ class _AppointmentCard extends StatelessWidget {
         children: [
           const _CardTitle('Appointment Details'),
           SizedBox(height: 0.5.h),
-          if (services.isEmpty)
-            const AppInfoRow(
-              icon: Icons.content_cut,
-              label: 'Service',
-              value: '—',
-            )
-          else
-            for (final service in services)
-              AppInfoRow(
-                icon: Icons.content_cut,
-                label: 'Service',
-                value: '${service.name}  •  ${service.priceLabel}',
-              ),
+          AppInfoRow(
+            icon: Icons.design_services_rounded,
+            label: services.length > 1 ? 'Services' : 'Service',
+            value: services.isEmpty
+                ? '—'
+                : services
+                      .map((service) => '${service.name}  •  ${service.priceLabel}')
+                      .join('\n'),
+          ),
           AppInfoRow(
             icon: Icons.calendar_today_outlined,
             label: 'Date',
-            value: formatRelativeDate(schedule.scheduledStart),
+            value: formatDayMonthYear(schedule.scheduledStart),
           ),
           AppInfoRow(
             icon: Icons.access_time_rounded,
