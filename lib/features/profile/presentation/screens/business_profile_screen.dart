@@ -9,6 +9,7 @@ import 'package:noq_business/features/profile/bloc/business_profile_event.dart';
 import 'package:noq_business/features/profile/bloc/business_profile_state.dart';
 import 'package:noq_business/features/profile/data/business_overview_model.dart';
 import 'package:noq_business/features/profile/presentation/widgets/overview_gallery_card.dart';
+import 'package:noq_business/features/profile/presentation/widgets/overview_manage_staff_card.dart';
 import 'package:noq_business/features/profile/presentation/widgets/overview_services_card.dart';
 import 'package:noq_business/features/profile/presentation/widgets/profile_header_card.dart';
 import 'package:noq_business/features/profile/presentation/widgets/reviews_card.dart';
@@ -114,6 +115,8 @@ class _ProfileContent extends StatelessWidget {
               // needs a full ServiceModel, so send the shop to the list.
               onServiceTap: (_) => context.push('/services'),
             ),
+            SizedBox(height: 2.h),
+            OverviewManageStaffCard(onTap: () => context.push('/staff')),
             SizedBox(height: 2.h),
             OverviewGalleryCard(
               gallery: overview.gallery,

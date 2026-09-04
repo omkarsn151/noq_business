@@ -24,6 +24,7 @@ import 'package:noq_business/features/settings/presentation/screens/settings_scr
 import 'package:noq_business/features/splash/splash_screen.dart';
 import 'package:noq_business/features/staff/data/staff_model.dart';
 import 'package:noq_business/features/staff/presentation/screen/add_staff_screen.dart';
+import 'package:noq_business/features/staff/presentation/screen/staff_list_screen.dart';
 import 'package:noq_business/features/stats/presentation/screens/stats_screen.dart';
 import 'package:noq_business/features/tnc/tnc_screen.dart';
 import 'package:noq_business/features/walkin/presentation/screens/walkin_screen.dart';
@@ -111,6 +112,10 @@ class AppRouter {
       GoRoute(
         path: '/services',
         builder: (context, state) => const ServicesScreen(),
+      ),
+      GoRoute(
+        path: '/staff',
+        builder: (context, state) => const StaffListScreen(),
       ),
       GoRoute(
         path: '/bookings/:id',
