@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:noq_business/core/api/api_endpoints.dart';
 import 'package:noq_business/core/api/dio_client.dart';
+import 'package:noq_business/features/walkin/data/todays_bookings_model.dart';
 import 'package:noq_business/features/walkin/data/walkin_booking_model.dart';
 import 'package:noq_business/features/walkin/data/walkin_slots_model.dart';
 
@@ -53,5 +54,13 @@ class WalkinRepository {
 
     final json = response.data as Map<String, dynamic>;
     return WalkinBookingModel.fromJson(json['data'] as Map<String, dynamic>);
+  }
+
+  /// The "Current Bookings" strip - the next few visits still ahead of now,
+  /// today. At most 5 rows; see [TodaysBookingsModel.totalToday] for the
+  /// real count.
+  Future<TodaysBookingsModel> getTodaysBookings() async {
+    final response = await _dioClient.get(ApiEndpoints.getTodaysBookings);
+    return TodaysBookingsModel.fromJson(response.data as Map<String, dynamic>);
   }
 }

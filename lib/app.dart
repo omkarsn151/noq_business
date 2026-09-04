@@ -36,6 +36,7 @@ import 'package:noq_business/features/staff/bloc/add_staff_bloc.dart';
 import 'package:noq_business/features/staff/bloc/staff_bloc.dart';
 import 'package:noq_business/features/staff/repository/staff_repository.dart';
 import 'package:noq_business/features/walkin/bloc/create_walkin_bloc.dart';
+import 'package:noq_business/features/walkin/bloc/todays_bookings_bloc.dart';
 import 'package:noq_business/features/walkin/repository/walkin_repository.dart';
 import 'package:noq_business/features/auth/register/repository/register_repository.dart';
 import 'package:noq_business/features/auth/request_otp/bloc/request_otp_bloc.dart';
@@ -104,6 +105,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<CreateWalkinBloc>(
           create: (_) => CreateWalkinBloc(WalkinRepository()),
+        ),
+        BlocProvider<TodaysBookingsBloc>(
+          create: (_) => TodaysBookingsBloc(WalkinRepository()),
         ),
         BlocProvider<DashboardBloc>(
           create: (_) => DashboardBloc(DashboardRepository()),
