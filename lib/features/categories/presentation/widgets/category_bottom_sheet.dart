@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/common/app_button.dart';
 import 'package:noq_business/features/categories/bloc/categories_bloc.dart';
@@ -36,26 +37,26 @@ class _CategoryBottomSheetBody extends StatelessWidget {
     return SizedBox(
       height: 75.sh,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(4.62.w, 1.42.h, 4.62.w, 2.13.h),
+        padding: EdgeInsets.fromLTRB(5.w, 1.5.h, 5.w, 2.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Container(
-                width: 10.26.w,
-                height: 0.47.h,
+                width: 10.w,
+                height: 0.5.h,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).dividerColor,
-                  borderRadius: BorderRadius.circular(0.51.w),
+                  color: AppColors.borderLight,
+                  borderRadius: BorderRadius.circular(0.9.w),
                 ),
               ),
             ),
-            SizedBox(height: 1.9.h),
+            SizedBox(height: 2.h),
             Text(
               'Select Category',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            SizedBox(height: 1.42.h),
+            SizedBox(height: 1.5.h),
             Expanded(
               child: BlocBuilder<CategoriesBloc, CategoriesState>(
                 builder: (context, state) {
@@ -72,11 +73,11 @@ class _CategoryBottomSheetBody extends StatelessWidget {
                           Icon(
                             Icons.error_outline,
                             size: 40.sp,
-                            color: Theme.of(context).colorScheme.error,
+                            color: AppColors.error,
                           ),
-                          SizedBox(height: 0.95.h),
+                          SizedBox(height: 1.h),
                           Text(state.message, textAlign: TextAlign.center),
-                          SizedBox(height: 1.42.h),
+                          SizedBox(height: 1.5.h),
                           AppButton(
                             label: 'Retry',
                             onPressed: () => context.read<CategoriesBloc>().add(
@@ -97,12 +98,12 @@ class _CategoryBottomSheetBody extends StatelessWidget {
                   }
 
                   return GridView.builder(
-                    padding: EdgeInsets.symmetric(vertical: 1.42.h),
+                    padding: EdgeInsets.symmetric(vertical: 1.5.h),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      mainAxisSpacing: 1.42.h,
-                      crossAxisSpacing: 3.08.w,
-                      childAspectRatio: 1.1,
+                      mainAxisSpacing: 1.5.h,
+                      crossAxisSpacing: 3.w,
+                      childAspectRatio: 1.5,
                     ),
                     itemCount: categories.length,
                     itemBuilder: (context, index) {
@@ -138,68 +139,118 @@ class _CategoryGridTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final imageKey = category.imageKey;
+    final theme = Theme.of(context);
+    final imageUrl = category.imageUrl;
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
+    final radius = BorderRadius.circular(3.w);
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(3.08.w),
       child: Container(
-        padding: EdgeInsets.all(2.56.w),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(3.08.w),
+          borderRadius: radius,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 1.5.w,
+            )
+          ],
           border: Border.all(
             color: isSelected
-                ? colorScheme.primary
-                : colorScheme.outlineVariant,
+                ? AppColors.primary
+                : AppColors.borderLight,
             width: isSelected ? 2 : 1,
           ),
-          color: isSelected
-              ? colorScheme.primary.withValues(alpha: 0.06)
-              : null,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Stack(
-              children: [
-                SizedBox(
-                  width: 12.31.w,
-                  height: 12.31.w,
-                  child: (imageKey != null && imageKey.isNotEmpty)
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(2.05.w),
-                          child: Image.network(
-                            imageKey,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _fallbackIcon(context),
-                          ),
-                        )
-                      : _fallbackIcon(context),
+            if (hasImage)
+              Positioned.fill(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.centerRight,
+                  errorBuilder: (_, _, _) => _fallback(context),
+                  loadingBuilder: (_, child, progress) =>
+                      progress == null ? child : _fallback(context),
                 ),
-              ],
+              )
+            else
+              Positioned.fill(child: _fallback(context)),
+            // White fade so the left-aligned text stays readable.
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Colors.white,
+                      Colors.white.withValues(alpha: 0.85),
+                      Colors.white.withValues(alpha: 0.15),
+                    ],
+                    stops: const [0.0, 0.45, 1.0],
+                  ),
+                ),
+              ),
             ),
-            SizedBox(height: 0.95.h),
-            Text(
-              category.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium,
+            Padding(
+              padding: EdgeInsets.all(3.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    category.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16.5.sp
+                    ),
+                  ),
+                  if (category.description != null &&
+                      category.description!.isNotEmpty) ...[
+                    SizedBox(height: 0.35.h),
+                    Text(
+                      category.description!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
+            if (isSelected)
+              Positioned(
+                top: 2.w,
+                right: 2.w,
+                child: Icon(
+                  Icons.check_circle,
+                  color: AppColors.primary,
+                  size: 20.sp,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _fallbackIcon(BuildContext context) {
+  Widget _fallback(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(2.05.w),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      alignment: Alignment.centerRight,
+      padding: EdgeInsets.only(right: 4.w),
+      child: Icon(
+        Icons.storefront_outlined,
+        size: 20.sp,
+        color: Theme.of(context).colorScheme.outline,
       ),
-      child: Icon(Icons.storefront_outlined, size: 26.sp),
     );
   }
 }
