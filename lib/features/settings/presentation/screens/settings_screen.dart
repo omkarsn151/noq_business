@@ -57,7 +57,7 @@ class SettingsScreen extends StatelessWidget {
                     icon: Icons.storefront_outlined,
                     title: 'Business Profile',
                     subtitle: 'Edit business information',
-                    onTap: () {},
+                    onTap: () => context.push('/business-profile'),
                   ),
                   SettingsTile(
                     icon: Icons.description_outlined,

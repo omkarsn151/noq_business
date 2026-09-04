@@ -65,7 +65,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: Icons.person_outline,
                 backgroundColor: AppColors.primary,
                 iconColor: AppColors.background,
-                onTap: () {},
+                onTap: () => context.push('/business-profile'),
               ),
               SizedBox(width: 4.w),
             ],

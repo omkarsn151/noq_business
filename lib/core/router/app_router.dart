@@ -15,6 +15,7 @@ import 'package:noq_business/features/promotions/data/promotion_details_model.da
 import 'package:noq_business/features/promotions/presentation/screens/create_promotion_screen.dart';
 import 'package:noq_business/features/promotions/presentation/screens/promotion_details_screen.dart';
 import 'package:noq_business/features/promotions/presentation/screens/promotions_screen.dart';
+import 'package:noq_business/features/profile/presentation/screens/business_profile_screen.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/service/presentation/screens/add_service_screen.dart';
 import 'package:noq_business/features/settings/presentation/screens/settings_screen.dart';
@@ -97,6 +98,10 @@ class AppRouter {
             PromotionDetailsScreen(promotionId: state.pathParameters['id']!),
       ),
       // Pushed full screen over the bottom nav, so it sits outside the shell.
+      GoRoute(
+        path: '/business-profile',
+        builder: (context, state) => const BusinessProfileScreen(),
+      ),
       GoRoute(
         path: '/bookings/:id',
         builder: (context, state) =>

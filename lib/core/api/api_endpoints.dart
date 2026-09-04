@@ -88,4 +88,7 @@ class ApiEndpoints {
   //====================Dashboard====================
   static const String getDashboard = "v1/business/dashboard";
 
+  //====================Business Profile Overview====================
+  static const String getBusinessOverview = "v1/business/overview";
+
 }
