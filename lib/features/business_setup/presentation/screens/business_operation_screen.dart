@@ -66,9 +66,15 @@ class _BusinessOperationScreenState extends State<BusinessOperationScreen> {
   ];
   int? selectedBookingWindow;
 
-  List<BusinessHourModel> _hours = BusinessHourModel.initialWeek();
+  /// Working days as the API's `day_of_week` values (Sunday 0 … Saturday 6).
+  /// One set of hours is shared across every selected day. Defaults to Mon–Fri.
+  final Set<int> _workingDays = {1, 2, 3, 4, 5};
+  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _endTime = const TimeOfDay(hour: 19, minute: 0);
+  TimeOfDay? _breakStart;
+  TimeOfDay? _breakEnd;
 
-  /// Per-day errors stay hidden until the first submit attempt.
+  /// Hours errors stay hidden until the first submit attempt.
   bool _hoursValidated = false;
 
   String? _requiredValidator(String? value, String label) {
@@ -76,19 +82,36 @@ class _BusinessOperationScreenState extends State<BusinessOperationScreen> {
     return null;
   }
 
-  /// Reports the first business-hours problem, or null when the week is valid.
-  /// Individual day errors are rendered on their own cards, so this only needs
-  /// to point the user at the right day.
+  /// Expands the single working-hours window into the per-day list the API
+  /// expects: selected days carry the shared timings, the rest are closed.
+  List<BusinessHourModel> _buildHours() {
+    return List.generate(7, (day) {
+      if (!_workingDays.contains(day)) {
+        return BusinessHourModel(dayOfWeek: day, isClosed: true);
+      }
+      return BusinessHourModel(
+        dayOfWeek: day,
+        opensAt: _startTime,
+        closesAt: _endTime,
+        breakStart: _breakStart,
+        breakEnd: _breakEnd,
+      );
+    });
+  }
+
+  /// Reports the first business-hours problem, or null when it is valid.
   String? _hoursError() {
-    if (_hours.every((day) => day.isClosed)) {
-      return 'Keep at least one day open for bookings';
+    if (_workingDays.isEmpty) {
+      return 'Select at least one working day';
     }
-    final invalid = _hours.where((day) => day.error != null).toList();
-    if (invalid.isEmpty) return null;
-    if (invalid.length == 1) {
-      return 'Fix the hours for ${invalid.first.dayName}';
-    }
-    return 'Fix the hours for ${invalid.map((d) => d.shortDayName).join(', ')}';
+    // Validate the shared window once by borrowing a single day's rules.
+    return BusinessHourModel(
+      dayOfWeek: 1,
+      opensAt: _startTime,
+      closesAt: _endTime,
+      breakStart: _breakStart,
+      breakEnd: _breakEnd,
+    ).error;
   }
 
   Future<void> _onSubmitForReviewPressed() async {
@@ -149,7 +172,7 @@ class _BusinessOperationScreenState extends State<BusinessOperationScreen> {
           cancellationPercentController.text.trim(),
         ),
         autoApproveEnabled: autoApproval,
-        hours: _hours,
+        hours: _buildHours(),
       ),
     );
   }
@@ -203,10 +226,42 @@ class _BusinessOperationScreenState extends State<BusinessOperationScreen> {
                       StaffSection(),
                       SizedBox(height: 2.h),
                       BusinessHoursSection(
-                        hours: _hours,
-                        showErrors: _hoursValidated,
-                        onChanged: (updated) {
-                          setState(() => _hours = updated);
+                        selectedDays: _workingDays,
+                        startTime: _startTime,
+                        endTime: _endTime,
+                        breakStart: _breakStart,
+                        breakEnd: _breakEnd,
+                        error: _hoursValidated ? _hoursError() : null,
+                        onDayToggled: (day) {
+                          setState(() {
+                            if (!_workingDays.remove(day)) {
+                              _workingDays.add(day);
+                            }
+                          });
+                        },
+                        onStartChanged: (time) {
+                          setState(() => _startTime = time);
+                        },
+                        onEndChanged: (time) {
+                          setState(() => _endTime = time);
+                        },
+                        onBreakStartChanged: (time) {
+                          setState(() => _breakStart = time);
+                        },
+                        onBreakEndChanged: (time) {
+                          setState(() => _breakEnd = time);
+                        },
+                        onAddBreak: () {
+                          setState(() {
+                            _breakStart = BusinessHourModel.defaultBreakStart;
+                            _breakEnd = BusinessHourModel.defaultBreakEnd;
+                          });
+                        },
+                        onRemoveBreak: () {
+                          setState(() {
+                            _breakStart = null;
+                            _breakEnd = null;
+                          });
                         },
                       ),
                       SizedBox(height: 2.h),
