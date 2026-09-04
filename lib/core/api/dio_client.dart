@@ -35,24 +35,34 @@ class DioClient {
           final isInvalidToken = error.response?.statusCode == 401 &&
               _extractErrorCode(error.response?.data) == 'AUTH_INVALID_TOKEN';
 
-          if (isInvalidToken && !isRetried) {
-            try {
-              final newAccessToken = await _refreshAccessToken();
-              error.requestOptions.extra['__retried'] = true;
-              error.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
-              final retryResponse = await _dio.fetch(error.requestOptions);
-              return handler.resolve(retryResponse);
-            } catch (_) {
-              await AuthSession.logout();
-              return handler.next(error);
-            }
+          // Only attempt a refresh for a fresh invalid-token error. A retried
+          // request that still fails must never trigger logout here.
+          if (!isInvalidToken || isRetried) {
+            return handler.next(error);
           }
 
-          if (isInvalidToken && isRetried) {
+          String newAccessToken;
+          try {
+            newAccessToken = await _refreshAccessToken();
+          } catch (_) {
+            // The refresh token API itself failed -> the session is dead.
             await AuthSession.logout();
+            return handler.next(error);
           }
 
-          handler.next(error);
+          // Refresh succeeded. Retry the original request once. A failure here
+          // belongs to the original request, not the refresh flow, so surface
+          // it without logging the user out.
+          try {
+            error.requestOptions.extra['__retried'] = true;
+            error.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
+            final retryResponse = await _dio.fetch(error.requestOptions);
+            return handler.resolve(retryResponse);
+          } on DioException catch (retryError) {
+            return handler.next(retryError);
+          } catch (_) {
+            return handler.next(error);
+          }
         },
       ),
     );
