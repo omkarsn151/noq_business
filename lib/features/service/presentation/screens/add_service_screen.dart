@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sizer/sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:noq_business/core/api/api_exception.dart';
+import 'package:noq_business/core/common/app_alert_dialog.dart';
 import 'package:noq_business/core/common/app_appbar.dart';
 import 'package:noq_business/core/common/app_button.dart';
 import 'package:noq_business/core/common/app_snackbar.dart';
@@ -24,6 +25,7 @@ import 'package:noq_business/features/service/bloc/add_service_event.dart';
 import 'package:noq_business/features/service/bloc/add_service_state.dart';
 import 'package:noq_business/features/service/bloc/service_bloc.dart';
 import 'package:noq_business/features/service/bloc/service_event.dart';
+import 'package:noq_business/features/service/bloc/service_state.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 
 const _maxBannerCount = 5;
@@ -74,6 +76,10 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
 
   var _thumbnailSlot = const _UploadSlotState();
   final _bannerSlots = <_UploadSlotState>[];
+
+  /// True once the delete flow is confirmed and dispatched, so the
+  /// [ServiceBloc] listener knows to act on the next success/failure.
+  bool _isDeleting = false;
 
   bool get _isEditing => widget.service != null;
 
@@ -328,6 +334,28 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     }
   }
 
+  Future<void> _onDeletePressed() async {
+    final service = widget.service;
+    if (service == null) return;
+
+    final confirmed = await AppAlertDialog.show(
+      context,
+      icon: Icons.delete_outline,
+      title: 'Delete Service',
+      message: 'Are you sure you want to delete "${service.name}"?',
+      primaryLabel: 'Delete',
+      secondaryLabel: 'Cancel',
+      iconColor: AppColors.error,
+      iconBackgroundColor: AppColors.primaryLight,
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    context.read<ServiceBloc>().add(
+      ServiceDeleteRequested(serviceId: service.id),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -340,6 +368,20 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                 context.read<ServiceBloc>().add(const ServicesRequested());
                 context.pop();
               } else if (state is AddServiceFailure) {
+                AppSnackbar.error(context, state.message);
+              }
+            },
+          ),
+          // Delete goes through ServiceBloc (the same bloc the Services list
+          // uses), so success here already means the list has re-fetched.
+          BlocListener<ServiceBloc, ServiceState>(
+            listenWhen: (_, _) => _isDeleting,
+            listener: (context, state) {
+              if (state is ServiceSuccess) {
+                AppSnackbar.success(context, 'Service deleted');
+                context.pop();
+              } else if (state is ServiceFailure) {
+                setState(() => _isDeleting = false);
                 AppSnackbar.error(context, state.message);
               }
             },
@@ -496,7 +538,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                   BlocBuilder<AddServiceBloc, AddServiceState>(
                     builder: (context, state) {
                       final isLoading = state is AddServiceLoading;
-                      final isDisabled = isLoading || _anySlotUploading;
+                      final isDisabled =
+                          isLoading || _anySlotUploading || _isDeleting;
                       return SizedBox(
                         width: double.infinity,
                         child: AppButton(
@@ -509,6 +552,34 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                       );
                     },
                   ),
+                  if (_isEditing) ...[
+                    SizedBox(height: 1.5.h),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isDeleting ? null : _onDeletePressed,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 2.h),
+                        ),
+                        icon: _isDeleting
+                            ? SizedBox(
+                                width: 16.sp,
+                                height: 16.sp,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.error,
+                                ),
+                              )
+                            : const Icon(Icons.delete_outline),
+                        label: Text(_isDeleting ? 'Deleting...' : 'Delete Service'),
+                      ),
+                    ),
+                  ],
                   SizedBox(height: 1.5.h),
                 ],
               ),

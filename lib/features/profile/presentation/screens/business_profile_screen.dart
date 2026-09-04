@@ -108,8 +108,11 @@ class _ProfileContent extends StatelessWidget {
             SizedBox(height: 2.h),
             OverviewServicesCard(
               services: overview.services,
-              onManageTap: () {},
-              onAddTap: () {},
+              onManageTap: () => context.push('/services'),
+              onAddTap: () => context.push('/add-service'),
+              // The overview carries the slim OverviewService; the edit form
+              // needs a full ServiceModel, so send the shop to the list.
+              onServiceTap: (_) => context.push('/services'),
             ),
             SizedBox(height: 2.h),
             OverviewGalleryCard(
