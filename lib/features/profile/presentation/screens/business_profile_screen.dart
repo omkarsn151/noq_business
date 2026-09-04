@@ -43,7 +43,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
         onLeadingPressed: () => context.pop(),
         actions: [
           IconButton(
-            onPressed: () => context.push('/settings'),
+            onPressed: () => context.push('/business-settings'),
             icon: const Icon(Icons.settings_outlined),
           ),
         ],
