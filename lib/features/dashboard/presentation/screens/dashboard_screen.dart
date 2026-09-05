@@ -166,6 +166,9 @@ class _DashboardContent extends StatelessWidget {
                   itemBuilder: (context, index) => StaffTile(
                     name: staff[index].name,
                     photoUrl: staff[index].photoUrl,
+                    // `push` stacks the profile over the bottom nav - `go`
+                    // would swap the shell branch out from under it.
+                    onTap: () => context.push('/staff/${staff[index].id}'),
                   ),
                 ),
               ),

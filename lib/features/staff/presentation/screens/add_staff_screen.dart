@@ -5,14 +5,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sizer/sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:noq_business/core/api/api_exception.dart';
+import 'package:noq_business/core/common/app_alert_dialog.dart';
 import 'package:noq_business/core/common/app_appbar.dart';
 import 'package:noq_business/core/common/app_button.dart';
 import 'package:noq_business/core/common/app_snackbar.dart';
 import 'package:noq_business/core/common/app_text_field.dart';
 import 'package:noq_business/core/services/image_picker_service.dart';
 import 'package:noq_business/core/services/upload_service.dart';
+import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/features/business_setup/presentation/widgets/upload_slot_field.dart';
 import 'package:noq_business/features/service/bloc/service_bloc.dart';
+import 'package:noq_business/features/service/bloc/service_event.dart';
 import 'package:noq_business/features/service/bloc/service_state.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/service/presentation/widgets/add_service_tile.dart';
@@ -23,6 +26,7 @@ import 'package:noq_business/features/staff/bloc/add_staff_event.dart';
 import 'package:noq_business/features/staff/bloc/add_staff_state.dart';
 import 'package:noq_business/features/staff/bloc/staff_bloc.dart';
 import 'package:noq_business/features/staff/bloc/staff_event.dart';
+import 'package:noq_business/features/staff/bloc/staff_state.dart';
 import 'package:noq_business/features/staff/data/staff_model.dart';
 
 class _UploadSlotState {
@@ -77,6 +81,15 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
   bool get _isEditing => widget.staff != null;
   bool _timeControllersInitialized = false;
 
+  /// True once the assigned services have been matched against the master
+  /// list - guards the [ServiceBloc] listener so a later refetch (e.g. from
+  /// the service picker) doesn't wipe out the owner's in-progress selection.
+  bool _initialServicesResolved = false;
+
+  /// True once the delete flow is confirmed and dispatched, so the
+  /// [StaffBloc] listener knows to act on the next success/failure.
+  bool _isDeleting = false;
+
   /// Keys for the break fields so a pick can re-validate just those, without
   /// flagging untouched fields like Name.
   final _breakStartFieldKey = GlobalKey<FormFieldState<String>>();
@@ -91,12 +104,8 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
       isActive = staff.isActive;
       _worksFrom = _parseTimeOfDay(staff.worksFrom);
       _worksTo = _parseTimeOfDay(staff.worksTo);
-      _breakStart = staff.breakStart != null
-          ? _parseTimeOfDay(staff.breakStart!)
-          : null;
-      _breakEnd = staff.breakEnd != null
-          ? _parseTimeOfDay(staff.breakEnd!)
-          : null;
+      _breakStart = _parseTimeOfDay(staff.breakStart);
+      _breakEnd = _parseTimeOfDay(staff.breakEnd);
       if (staff.photo != null) {
         _photoSlot = _UploadSlotState(
           status: UploadSlotStatus.uploaded,
@@ -105,7 +114,10 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
           previewUrl: staff.photo!.url,
         );
       }
-      _selectedServices = _resolveInitialServices(staff);
+      // Always fetch fresh rather than trusting whatever ServiceBloc happens
+      // to hold - the BlocListener below fills in the assigned services once
+      // this lands.
+      context.read<ServiceBloc>().add(const ServicesRequested());
     }
   }
 
@@ -133,15 +145,23 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
     super.dispose();
   }
 
-  TimeOfDay _parseTimeOfDay(String value) {
-    final parts = value.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  /// Null for anything that is not an 'HH:mm' prefix - the API allows a staff
+  /// member with no hours set, and the field should just open empty.
+  TimeOfDay? _parseTimeOfDay(String? value) {
+    final parts = (value ?? '').split(':');
+    if (parts.length < 2) return null;
+
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+
+    return TimeOfDay(hour: hour, minute: minute);
   }
 
-  List<ServiceModel> _resolveInitialServices(StaffModel staff) {
-    final serviceState = context.read<ServiceBloc>().state;
-    if (serviceState is! ServiceSuccess) return [];
-    final allServices = serviceState.services;
+  List<ServiceModel> _resolveInitialServices(
+    StaffModel staff,
+    List<ServiceModel> allServices,
+  ) {
     final resolved = <ServiceModel>[];
     for (final ref in staff.services) {
       for (final service in allServices) {
@@ -344,19 +364,74 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
     }
   }
 
+  Future<void> _onDeletePressed() async {
+    final staff = widget.staff;
+    if (staff == null) return;
+
+    final confirmed = await AppAlertDialog.show(
+      context,
+      icon: Icons.delete_outline,
+      title: 'Delete Staff',
+      message: 'Are you sure you want to delete "${staff.name}"?',
+      primaryLabel: 'Delete',
+      secondaryLabel: 'Cancel',
+      iconColor: AppColors.error,
+      iconBackgroundColor: AppColors.primaryLight,
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    context.read<StaffBloc>().add(StaffDeleteRequested(staffId: staff.id));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppAppBar(title: _isEditing ? 'Edit Staff' : 'Add Staff'),
-      body: BlocListener<AddStaffBloc, AddStaffState>(
-        listener: (context, state) {
-          if (state is AddStaffSuccess) {
-            context.read<StaffBloc>().add(const StaffRequested());
-            context.pop();
-          } else if (state is AddStaffFailure) {
-            AppSnackbar.error(context, state.message);
-          }
-        },
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<AddStaffBloc, AddStaffState>(
+            listener: (context, state) {
+              if (state is AddStaffSuccess) {
+                context.read<StaffBloc>().add(const StaffRequested());
+                context.pop();
+              } else if (state is AddStaffFailure) {
+                AppSnackbar.error(context, state.message);
+              }
+            },
+          ),
+          // Catches the fetch kicked off in initState when ServiceBloc had
+          // nothing loaded yet - e.g. arriving from the Staff Profile screen.
+          BlocListener<ServiceBloc, ServiceState>(
+            listener: (context, state) {
+              final staff = widget.staff;
+              if (staff == null || _initialServicesResolved) return;
+              if (state is ServiceSuccess) {
+                setState(() {
+                  _selectedServices = _resolveInitialServices(
+                    staff,
+                    state.services,
+                  );
+                  _initialServicesResolved = true;
+                });
+              }
+            },
+          ),
+          // Delete goes through StaffBloc (the same bloc the Staff list
+          // uses), so success here already means the list has re-fetched.
+          BlocListener<StaffBloc, StaffState>(
+            listenWhen: (_, _) => _isDeleting,
+            listener: (context, state) {
+              if (state is StaffSuccess) {
+                AppSnackbar.success(context, 'Staff deleted');
+                context.pop();
+              } else if (state is StaffFailure) {
+                setState(() => _isDeleting = false);
+                AppSnackbar.error(context, state.message);
+              }
+            },
+          ),
+        ],
         child: SingleChildScrollView(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 5.w),
@@ -499,7 +574,9 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                     builder: (context, state) {
                       final isLoading = state is AddStaffLoading;
                       final isDisabled =
-                          isLoading || _photoSlot.status == UploadSlotStatus.uploading;
+                          isLoading ||
+                          _photoSlot.status == UploadSlotStatus.uploading ||
+                          _isDeleting;
                       return SizedBox(
                         width: double.infinity,
                         child: AppButton(
@@ -512,6 +589,34 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
                       );
                     },
                   ),
+                  if (_isEditing) ...[
+                    SizedBox(height: 1.5.h),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isDeleting ? null : _onDeletePressed,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 2.h),
+                        ),
+                        icon: _isDeleting
+                            ? SizedBox(
+                                width: 16.sp,
+                                height: 16.sp,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.error,
+                                ),
+                              )
+                            : const Icon(Icons.delete_outline),
+                        label: Text(_isDeleting ? 'Deleting...' : 'Delete Staff'),
+                      ),
+                    ),
+                  ],
                   SizedBox(height: 1.5.h),
                 ],
               ),

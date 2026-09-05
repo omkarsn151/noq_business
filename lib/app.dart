@@ -34,6 +34,7 @@ import 'package:noq_business/features/service/bloc/service_bloc.dart';
 import 'package:noq_business/features/service/repository/service_repository.dart';
 import 'package:noq_business/features/staff/bloc/add_staff_bloc.dart';
 import 'package:noq_business/features/staff/bloc/staff_bloc.dart';
+import 'package:noq_business/features/staff/bloc/staff_details_bloc.dart';
 import 'package:noq_business/features/staff/repository/staff_repository.dart';
 import 'package:noq_business/features/walkin/bloc/create_walkin_bloc.dart';
 import 'package:noq_business/features/walkin/bloc/todays_bookings_bloc.dart';
@@ -82,6 +83,9 @@ class MyApp extends StatelessWidget {
           create: (_) => AddServiceBloc(ServiceRepository()),
         ),
         BlocProvider<StaffBloc>(create: (_) => StaffBloc(StaffRepository())),
+        BlocProvider<StaffDetailsBloc>(
+          create: (_) => StaffDetailsBloc(StaffRepository()),
+        ),
         BlocProvider<CreatePromotionBloc>(
           create: (_) => CreatePromotionBloc(PromotionsRepository()),
         ),

@@ -140,8 +140,11 @@ class _StaffListScreenState extends State<StaffListScreen> {
         itemCount: filtered.length,
         separatorBuilder: (_, _) => SizedBox(height: 1.5.h),
         itemBuilder: (context, index) {
-          // Tapping a card opens editing - wired up in a later change.
-          return StaffListCard(staff: filtered[index]);
+          final member = filtered[index];
+          return StaffListCard(
+            staff: member,
+            onTap: () => context.push('/staff/${member.id}'),
+          );
         },
       ),
     );

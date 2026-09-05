@@ -25,8 +25,9 @@ import 'package:noq_business/features/service/presentation/screens/services_scre
 import 'package:noq_business/features/settings/presentation/screens/settings_screen.dart';
 import 'package:noq_business/features/splash/splash_screen.dart';
 import 'package:noq_business/features/staff/data/staff_model.dart';
-import 'package:noq_business/features/staff/presentation/screen/add_staff_screen.dart';
-import 'package:noq_business/features/staff/presentation/screen/staff_list_screen.dart';
+import 'package:noq_business/features/staff/presentation/screens/add_staff_screen.dart';
+import 'package:noq_business/features/staff/presentation/screens/staff_details_screen.dart';
+import 'package:noq_business/features/staff/presentation/screens/staff_list_screen.dart';
 import 'package:noq_business/features/stats/presentation/screens/stats_screen.dart';
 import 'package:noq_business/features/tnc/tnc_screen.dart';
 import 'package:noq_business/features/walkin/presentation/screens/walkin_screen.dart';
@@ -118,6 +119,11 @@ class AppRouter {
       GoRoute(
         path: '/staff',
         builder: (context, state) => const StaffListScreen(),
+      ),
+      GoRoute(
+        path: '/staff/:id',
+        builder: (context, state) =>
+            StaffDetailsScreen(staffId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/ratings',

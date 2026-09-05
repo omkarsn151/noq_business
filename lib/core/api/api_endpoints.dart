@@ -50,6 +50,9 @@ class ApiEndpoints {
 
   static const String editStaff = "v1/business/staff";
 
+
+  static const String staffDetails = "v1/business/staff";
+
   //====================Uplaod====================
 
   static const String upload = "v1/uploads";
