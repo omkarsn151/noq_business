@@ -18,58 +18,66 @@ class MainScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _onTap,
-        elevation: 2,
-        shadowColor: AppColors.border,
-        indicatorColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
-          Set<WidgetState> states,
-        ) {
-          if (states.contains(WidgetState.selected)) {
+    return PopScope(
+      canPop: navigationShell.currentIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && navigationShell.currentIndex != 0) {
+          navigationShell.goBranch(0, initialLocation: true);
+        }
+      },
+      child: Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: _onTap,
+          elevation: 2,
+          shadowColor: AppColors.border,
+          indicatorColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
+            Set<WidgetState> states,
+          ) {
+            if (states.contains(WidgetState.selected)) {
+              return Theme.of(context).textTheme.labelSmall!.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w900,
+              );
+            }
+
             return Theme.of(context).textTheme.labelSmall!.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w900,
+              color: AppColors.border,
+              fontWeight: FontWeight.w500,
             );
-          }
+          }),
 
-          return Theme.of(context).textTheme.labelSmall!.copyWith(
-            color: AppColors.border,
-            fontWeight: FontWeight.w500,
-          );
-        }),
-
-        destinations: const [
-          NavigationDestination(
-            icon: _NavIcon(AppAssets.navDashboard),
-            selectedIcon: _NavIcon(AppAssets.navDashboardFilled, selected: true),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: _NavIcon(AppAssets.navBookings),
-            selectedIcon: _NavIcon(AppAssets.navBookingsFilled, selected: true),
-            label: 'Bookings',
-          ),
-          NavigationDestination(
-            icon: _NavIcon(AppAssets.navWalkin),
-            selectedIcon: _NavIcon(AppAssets.navWalkinFilled, selected: true),
-            label: 'Walk-in',
-          ),
-          NavigationDestination(
-            icon: _NavIcon(AppAssets.navInsights),
-            selectedIcon: _NavIcon(AppAssets.navInsightsFilled, selected: true),
-            label: 'Insights',
-          ),
-          NavigationDestination(
-            icon: _NavIcon(AppAssets.navSettings),
-            selectedIcon: _NavIcon(AppAssets.navSettingsFilled, selected: true),
-            label: 'Settings',
-          ),
-        ],
+          destinations: const [
+            NavigationDestination(
+              icon: _NavIcon(AppAssets.navDashboard),
+              selectedIcon: _NavIcon(AppAssets.navDashboardFilled, selected: true),
+              label: 'Dashboard',
+            ),
+            NavigationDestination(
+              icon: _NavIcon(AppAssets.navBookings),
+              selectedIcon: _NavIcon(AppAssets.navBookingsFilled, selected: true),
+              label: 'Bookings',
+            ),
+            NavigationDestination(
+              icon: _NavIcon(AppAssets.navWalkin),
+              selectedIcon: _NavIcon(AppAssets.navWalkinFilled, selected: true),
+              label: 'Walk-in',
+            ),
+            NavigationDestination(
+              icon: _NavIcon(AppAssets.navInsights),
+              selectedIcon: _NavIcon(AppAssets.navInsightsFilled, selected: true),
+              label: 'Insights',
+            ),
+            NavigationDestination(
+              icon: _NavIcon(AppAssets.navSettings),
+              selectedIcon: _NavIcon(AppAssets.navSettingsFilled, selected: true),
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }
