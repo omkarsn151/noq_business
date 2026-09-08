@@ -98,6 +98,10 @@ class ApiEndpoints {
 
   static const String getBusinessGallery = "v1/business/gallery";
 
+  static const String getBusinessSettings = "v1/business/operations";
+
+  static const String updateBusinessSettings = "v1/business/operations";
+
   //====================Ratings and Reviews====================
   static const String getRatingsAndReviews = "v1/business/reviews";
 

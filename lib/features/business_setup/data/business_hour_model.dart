@@ -20,6 +20,17 @@ class BusinessHourModel {
     this.breakEnd,
   });
 
+  factory BusinessHourModel.fromJson(Map<String, dynamic> json) {
+    return BusinessHourModel(
+      dayOfWeek: (json['day_of_week'] as num?)?.toInt() ?? 0,
+      isClosed: json['is_closed'] as bool? ?? false,
+      opensAt: _parseTime(json['opens_at']),
+      closesAt: _parseTime(json['closes_at']),
+      breakStart: _parseTime(json['break_start']),
+      breakEnd: _parseTime(json['break_end']),
+    );
+  }
+
   static const List<String> dayNames = [
     'Sunday',
     'Monday',
@@ -139,6 +150,19 @@ class BusinessHourModel {
   }
 
   static int _minutesOf(TimeOfDay time) => time.hour * 60 + time.minute;
+
+  /// Parses the API's `HH:mm:ss` clock strings. Null on a closed day, and on
+  /// anything that does not read as a time.
+  static TimeOfDay? _parseTime(Object? value) {
+    if (value == null) return null;
+    final parts = value.toString().split(':');
+    if (parts.length < 2) return null;
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    if (hour == null || minute == null) return null;
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return TimeOfDay(hour: hour, minute: minute);
+  }
 
   static String? _formatTime(TimeOfDay? time) {
     if (time == null) return null;

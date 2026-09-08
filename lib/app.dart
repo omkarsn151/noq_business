@@ -21,6 +21,7 @@ import 'package:noq_business/features/promotions/bloc/promotion_action_bloc.dart
 import 'package:noq_business/features/promotions/bloc/promotion_details_bloc.dart';
 import 'package:noq_business/features/promotions/bloc/promotions_bloc.dart';
 import 'package:noq_business/features/profile/bloc/business_profile_bloc.dart';
+import 'package:noq_business/features/profile/bloc/business_settings_bloc.dart';
 import 'package:noq_business/features/profile/repository/business_profile_repository.dart';
 import 'package:noq_business/features/promotions/repository/promotions_repository.dart';
 import 'package:noq_business/features/ratings/bloc/ratings_bloc.dart';
@@ -118,6 +119,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<BusinessProfileBloc>(
           create: (_) => BusinessProfileBloc(BusinessProfileRepository()),
+        ),
+        BlocProvider<BusinessSettingsBloc>(
+          create: (_) => BusinessSettingsBloc(BusinessProfileRepository()),
         ),
         BlocProvider<GalleryBloc>(
           create: (_) => GalleryBloc(GalleryRepository()),
