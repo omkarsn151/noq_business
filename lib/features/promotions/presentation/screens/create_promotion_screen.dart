@@ -89,6 +89,8 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
   bool get _isDraftEdit =>
       _isEditing && _promotion!.status == PromotionStatus.draft;
 
+  bool get _isPublishedEdit => _isEditing && !_isDraftEdit;
+
   @override
   void initState() {
     super.initState();
@@ -404,6 +406,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
           perCustomerLimit: _optionalInt(_perCustomerController),
           publish: _isDraftEdit ? (publish ? true : null) : null,
           isActive: _isDraftEdit ? null : _isActive,
+          includeDiscountFields: !_isPublishedEdit,
         ),
       );
     } else {
@@ -562,10 +565,12 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
                                 ? 'Percent (%)'
                                 : 'Flat (₹)',
                             isSelected: _discountType == type,
-                            onTap: () {
-                              setState(() => _discountType = type);
-                              _formKey.currentState?.validate();
-                            },
+                            onTap: _isPublishedEdit
+                                ? null
+                                : () {
+                                    setState(() => _discountType = type);
+                                    _formKey.currentState?.validate();
+                                  },
                           ),
                         ),
                       ],
@@ -580,6 +585,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
                         ? 'Enter discount percentage'
                         : 'Enter discount amount',
                     controller: _discountValueController,
+                    readOnly: _isPublishedEdit,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -765,7 +771,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
 class _DiscountTypeChip extends StatelessWidget {
   final String label;
   final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _DiscountTypeChip({
     required this.label,
@@ -793,7 +799,11 @@ class _DiscountTypeChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 15.sp,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? AppColors.background : AppColors.textPrimary,
+            color: onTap == null
+                ? AppColors.border
+                : isSelected
+                ? AppColors.background
+                : AppColors.textPrimary,
           ),
         ),
       ),

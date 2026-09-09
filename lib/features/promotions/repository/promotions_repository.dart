@@ -96,6 +96,7 @@ class PromotionsRepository {
     int? perCustomerLimit,
     bool? publish,
     bool? isActive,
+    bool includeDiscountFields = true,
   }) async {
     await _dioClient.put(
       '${ApiEndpoints.updatePromotion}$id',
@@ -103,8 +104,10 @@ class PromotionsRepository {
         'title': title,
         'description': description,
         'banner_upload_id': bannerUploadId,
-        'discount_type': discountType.value,
-        'discount_value': discountValue,
+        if (includeDiscountFields) ...{
+          'discount_type': discountType.value,
+          'discount_value': discountValue,
+        },
         'min_booking_amount': minBookingAmount,
         'max_discount_amount': maxDiscountAmount,
         'valid_from': validFrom.toUtc().toIso8601String(),

@@ -64,6 +64,7 @@ class CreatePromotionBloc
         perCustomerLimit: event.perCustomerLimit,
         publish: event.publish,
         isActive: event.isActive,
+        includeDiscountFields: event.includeDiscountFields,
       );
       emit(
         CreatePromotionSuccess(

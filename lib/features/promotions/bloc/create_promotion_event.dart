@@ -82,6 +82,9 @@ class UpdatePromotionSubmitted extends CreatePromotionEvent {
   /// The pause switch. Only sent when editing an already published promo.
   final bool? isActive;
 
+  /// Published promos keep their existing discount fields unchanged.
+  final bool includeDiscountFields;
+
   const UpdatePromotionSubmitted({
     required this.promotionId,
     required this.title,
@@ -97,6 +100,7 @@ class UpdatePromotionSubmitted extends CreatePromotionEvent {
     this.perCustomerLimit,
     this.publish,
     this.isActive,
+    this.includeDiscountFields = true,
   });
 
   @override
@@ -115,5 +119,6 @@ class UpdatePromotionSubmitted extends CreatePromotionEvent {
     perCustomerLimit,
     publish,
     isActive,
+    includeDiscountFields,
   ];
 }
