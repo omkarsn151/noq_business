@@ -18,13 +18,25 @@ class BookingService {
 /// A single booking row returned by the bookings list endpoint.
 class BookingModel {
   final String id;
+  final String reference;
   final String customerName;
   final List<BookingService> services;
   final int durationMinutes;
+
+  /// For a reschedule request this is the *original* slot, and the slot the
+  /// customer asked for lives in [requestedStart] / [requestedEnd].
   final DateTime? scheduledStart;
   final DateTime? scheduledEnd;
   final BookingStatus? status;
   final String bookingType;
+
+  /// True when this row is a customer reschedule request rather than a plain
+  /// booking. Reschedule requests show up in the Pending tab even though the
+  /// booking itself is still confirmed.
+  final bool isRescheduleRequest;
+  final String? rescheduleRequestId;
+  final DateTime? requestedStart;
+  final DateTime? requestedEnd;
 
   const BookingModel({
     required this.id,
@@ -35,6 +47,11 @@ class BookingModel {
     required this.scheduledEnd,
     required this.status,
     required this.bookingType,
+    this.reference = '',
+    this.isRescheduleRequest = false,
+    this.rescheduleRequestId,
+    this.requestedStart,
+    this.requestedEnd,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -52,6 +69,13 @@ class BookingModel {
       scheduledEnd: DateTime.tryParse(json['scheduled_end']?.toString() ?? ''),
       status: BookingStatus.fromString(json['status']?.toString()),
       bookingType: json['booking_type']?.toString() ?? '',
+      reference: json['reference']?.toString() ?? '',
+      isRescheduleRequest: json['is_reschedule_request'] == true,
+      rescheduleRequestId: json['reschedule_request_id']?.toString(),
+      requestedStart: DateTime.tryParse(
+        json['requested_start']?.toString() ?? '',
+      ),
+      requestedEnd: DateTime.tryParse(json['requested_end']?.toString() ?? ''),
     );
   }
 

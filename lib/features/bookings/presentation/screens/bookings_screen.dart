@@ -169,8 +169,16 @@ class _BookingsList extends StatelessWidget {
               endTime: formatRelativeDateTime(booking.scheduledEnd),
               status: booking.status ?? status,
               isWalkIn: booking.isWalkIn,
+              isRescheduleRequest: booking.isRescheduleRequest,
+              requestedStartTime: formatRelativeDateTime(
+                booking.requestedStart,
+              ),
+              requestedEndTime: formatRelativeDateTime(booking.requestedEnd),
               onTap: () => context.push('/bookings/${booking.id}'),
-              // TODO: wire up once the approve/reject endpoints are available.
+              // TODO: wire up once the action endpoints are available. Regular
+              // rows go to POST v1/business/bookings/{id}/actions, reschedule
+              // rows to POST
+              // v1/business/reschedule-requests/{reschedule_request_id}/approve-reject.
               onReject: () {},
               onApprove: () {},
             );

@@ -17,6 +17,16 @@ class BookingCard extends StatelessWidget {
   /// Adds a 'Walk-in' chip next to the service details.
   final bool isWalkIn;
 
+  /// Flags the card as a customer reschedule request: adds a badge, shows the
+  /// current slot alongside the requested one and always offers the
+  /// reject/approve actions.
+  final bool isRescheduleRequest;
+
+  /// The slot the customer asked to move to. Only used when
+  /// [isRescheduleRequest] is true.
+  final String? requestedStartTime;
+  final String? requestedEndTime;
+
   /// Opens the booking details screen.
   final VoidCallback? onTap;
   final VoidCallback? onReject;
@@ -31,6 +41,9 @@ class BookingCard extends StatelessWidget {
     required this.endTime,
     required this.status,
     this.isWalkIn = false,
+    this.isRescheduleRequest = false,
+    this.requestedStartTime,
+    this.requestedEndTime,
     this.onTap,
     this.onReject,
     this.onApprove,
@@ -96,6 +109,13 @@ class BookingCard extends StatelessWidget {
                           _BookingChip(label: serviceName),
                         _BookingChip(label: duration),
                         if (isWalkIn) const _BookingChip(label: 'Walk-in'),
+                        if (isRescheduleRequest)
+                          _BookingChip(
+                            label: 'Reschedule Request',
+                            icon: Icons.autorenew,
+                            color: AppColors.orange.withValues(alpha: 0.12),
+                            textColor: AppColors.live,
+                          ),
                       ],
                     ),
                   ],
@@ -104,20 +124,7 @@ class BookingCard extends StatelessWidget {
             ],
           ),
           SizedBox(height: 1.5.h),
-          Row(
-            children: [
-              _SlotTime(time: startTime),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 1.5.w),
-                child: Icon(
-                  Icons.arrow_forward,
-                  size: 15.sp,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              _SlotTime(time: endTime),
-            ],
-          ),
+          _buildSlots(context),
           SizedBox(height: 1.6.h),
           const Divider(height: 1, thickness: 1, color: AppColors.borderLight),
           SizedBox(height: 1.6.h),
@@ -127,10 +134,64 @@ class BookingCard extends StatelessWidget {
     );
   }
 
+  /// A plain booking shows its single slot. A reschedule request shows the
+  /// current slot struck through above the slot the customer asked for.
+  Widget _buildSlots(BuildContext context) {
+    if (!isRescheduleRequest) {
+      return _SlotRow(start: startTime, end: endTime);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SlotRow(
+          label: 'Current',
+          start: startTime,
+          end: endTime,
+          color: AppColors.textSecondary.withValues(alpha: 0.6),
+          strikeThrough: true,
+        ),
+        SizedBox(height: 0.8.h),
+        _SlotRow(
+          label: 'Requested',
+          start: requestedStartTime ?? '',
+          end: requestedEndTime ?? '',
+          color: AppColors.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ],
+    );
+  }
+
   Widget _buildFooter(BuildContext context) {
+    if (isRescheduleRequest) return _pendingActions(context);
+
     switch (status) {
       case BookingStatus.pending:
-        return Padding(
+        return _pendingActions(context);
+      case BookingStatus.approved:
+        return _StatusLabel(
+          icon: Icons.check,
+          color: AppColors.success,
+          label: 'Approved',
+        );
+      case BookingStatus.rejected:
+        return _StatusLabel(
+          icon: Icons.cancel,
+          color: AppColors.error,
+          label: 'Rejected',
+        );
+      case BookingStatus.cancelled:
+        return _StatusLabel(
+          icon: Icons.block,
+          color: AppColors.textSecondary,
+          label: 'Cancelled',
+        );
+    }
+  }
+
+  Widget _pendingActions(BuildContext context) {
+    return Padding(
           padding: EdgeInsets.only(left: 12.w),
           child: Row(
             children: [
@@ -176,75 +237,112 @@ class BookingCard extends StatelessWidget {
               ),
             ],
           ),
-        );
-      case BookingStatus.approved:
-        return _StatusLabel(
-          icon: Icons.check,
-          color: AppColors.success,
-          label: 'Approved',
-        );
-      case BookingStatus.rejected:
-        return _StatusLabel(
-          icon: Icons.cancel,
-          color: AppColors.error,
-          label: 'Rejected',
-        );
-      case BookingStatus.cancelled:
-        return _StatusLabel(
-          icon: Icons.block,
-          color: AppColors.textSecondary,
-          label: 'Cancelled',
-        );
-    }
+    );
   }
 }
 
 class _BookingChip extends StatelessWidget {
   final String label;
+  final IconData? icon;
+  final Color color;
+  final Color textColor;
 
-  const _BookingChip({required this.label});
+  const _BookingChip({
+    required this.label,
+    this.icon,
+    this.color = AppColors.primaryLight,
+    this.textColor = AppColors.textSecondary,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final text = Text(
+      label,
+      style: Theme.of(
+        context,
+      ).textTheme.bodySmall?.copyWith(fontSize: 12.sp, color: textColor),
+    );
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.4.h),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight,
+        color: color,
         borderRadius: BorderRadius.circular(5.w),
       ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontSize: 12.sp,
-          color: AppColors.textSecondary,
-        ),
-      ),
+      child: icon == null
+          ? text
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 13.sp, color: textColor),
+                SizedBox(width: 1.5.w),
+                text,
+              ],
+            ),
     );
   }
 }
 
-class _SlotTime extends StatelessWidget {
-  final String time;
+/// A 'start → end' slot line, optionally prefixed with a label and tinted /
+/// struck through so a reschedule request can show its old and new slots.
+class _SlotRow extends StatelessWidget {
+  final String? label;
+  final String start;
+  final String end;
+  final Color color;
+  final bool strikeThrough;
+  final FontWeight? fontWeight;
 
-  const _SlotTime({required this.time});
+  const _SlotRow({
+    required this.start,
+    required this.end,
+    this.label,
+    this.color = AppColors.textSecondary,
+    this.strikeThrough = false,
+    this.fontWeight,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: color,
+      fontWeight: fontWeight,
+      decoration: strikeThrough ? TextDecoration.lineThrough : null,
+      decorationColor: color,
+    );
+
     return Row(
       children: [
-        Icon(
-          Icons.calendar_today_outlined,
-          size: 14.sp,
-          color: AppColors.textSecondary,
-        ),
+        Icon(Icons.calendar_today_outlined, size: 14.sp, color: color),
         SizedBox(width: 2.w),
-        Text(
-          time,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+        if (label != null) ...[
+          Text(
+            '$label:',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: color),
+          ),
+          SizedBox(width: 1.5.w),
+        ],
+        Flexible(
+          child: Text(
+            start,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 1.5.w),
+          child: Icon(Icons.arrow_forward, size: 15.sp, color: color),
+        ),
+        Flexible(
+          child: Text(
+            end,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
         ),
       ],
     );
