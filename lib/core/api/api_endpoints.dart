@@ -105,4 +105,7 @@ class ApiEndpoints {
   //====================Ratings and Reviews====================
   static const String getRatingsAndReviews = "v1/business/reviews";
 
+  //====================Insights====================
+  static const String getInsights = "v1/business/insights";
+
 }
