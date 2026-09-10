@@ -59,6 +59,7 @@ class _WalkinScreenState extends State<WalkinScreen> {
     final result = await ServiceSelectionBottomSheet.show(
       context,
       selected: _selectedServices,
+      showPriceAndDuration: true,
     );
     if (result == null) return;
     setState(() {
