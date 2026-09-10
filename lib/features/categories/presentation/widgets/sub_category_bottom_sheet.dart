@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sizer/sizer.dart';
-import 'package:noq_business/core/common/app_button.dart';
+import 'package:noq_business/core/common/app_search_field.dart';
+import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/features/categories/bloc/categories_bloc.dart';
 import 'package:noq_business/features/categories/bloc/categories_event.dart';
 import 'package:noq_business/features/categories/bloc/categories_state.dart';
 import 'package:noq_business/features/categories/data/categories_model.dart';
+import 'package:noq_business/features/categories/presentation/widgets/picker_sheet_parts.dart';
 
 class SubCategoryBottomSheet {
   SubCategoryBottomSheet._();
@@ -18,6 +20,7 @@ class SubCategoryBottomSheet {
     return showModalBottomSheet<SubCategoryModel>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.background,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(5.13.w)),
       ),
@@ -26,93 +29,119 @@ class SubCategoryBottomSheet {
   }
 }
 
-class _SubCategoryBottomSheetBody extends StatelessWidget {
+class _SubCategoryBottomSheetBody extends StatefulWidget {
   final SubCategoryModel? selected;
 
   const _SubCategoryBottomSheetBody({this.selected});
 
   @override
+  State<_SubCategoryBottomSheetBody> createState() =>
+      _SubCategoryBottomSheetBodyState();
+}
+
+class _SubCategoryBottomSheetBodyState
+    extends State<_SubCategoryBottomSheetBody> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onQueryChanged(String value) {
+    setState(() => _query = value.trim().toLowerCase());
+  }
+
+  List<SubCategoryModel> _filter(List<SubCategoryModel> subCategories) {
+    if (_query.isEmpty) return subCategories;
+    return subCategories
+        .where((s) => s.name.toLowerCase().contains(_query))
+        .toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return SizedBox(
-      height: 75.sh,
+      height: 80.sh,
       child: Padding(
         padding: EdgeInsets.fromLTRB(4.62.w, 1.42.h, 4.62.w, 2.13.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 10.26.w,
-                height: 0.47.h,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).dividerColor,
-                  borderRadius: BorderRadius.circular(0.51.w),
-                ),
-              ),
+            const PickerSheetHeader(
+              title: 'Select Sub Category',
+              subtitle: 'Choose the sub category this service belongs to',
             ),
-            SizedBox(height: 1.9.h),
-            Text(
-              'Select Sub Category',
-              style: Theme.of(context).textTheme.titleMedium,
+            SizedBox(height: 1.8.h),
+            AppSearchField(
+              controller: _searchController,
+              hintText: 'Search sub categories',
+              onChanged: _onQueryChanged,
+              onClear: () {
+                _searchController.clear();
+                _onQueryChanged('');
+              },
             ),
-            SizedBox(height: 1.42.h),
             Expanded(
               child: BlocBuilder<CategoriesBloc, CategoriesState>(
                 builder: (context, state) {
-                  if (state is CategoriesLoading ||
-                      state is CategoriesInitial) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
                   if (state is CategoriesFailure) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 40.sp,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                          SizedBox(height: 0.95.h),
-                          Text(state.message, textAlign: TextAlign.center),
-                          SizedBox(height: 1.42.h),
-                          AppButton(
-                            label: 'Retry',
-                            onPressed: () => context.read<CategoriesBloc>().add(
-                              const SubCategoriesRequested(),
-                            ),
-                          ),
-                        ],
+                    return PickerSheetMessage(
+                      icon: Icons.wifi_off_rounded,
+                      iconColor: AppColors.error,
+                      title: 'Could not load sub categories',
+                      message: state.message,
+                      actionLabel: 'Retry',
+                      onAction: () => context.read<CategoriesBloc>().add(
+                        const SubCategoriesRequested(),
                       ),
                     );
                   }
 
                   if (state is! SubCategoriesSuccess) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const PickerGridSkeleton();
                   }
-                  final subCategories = state.subCategories;
+
+                  if (state.subCategories.isEmpty) {
+                    return const PickerSheetMessage(
+                      icon: Icons.layers_outlined,
+                      title: 'No sub categories available',
+                      message: 'Please check back in a little while.',
+                    );
+                  }
+
+                  final subCategories = _filter(state.subCategories);
                   if (subCategories.isEmpty) {
-                    return const Center(
-                      child: Text('No sub categories available'),
+                    return PickerSheetMessage(
+                      icon: Icons.search_off_rounded,
+                      title: 'No matches found',
+                      message:
+                          'No sub category matches "${_searchController.text}".',
                     );
                   }
 
                   return GridView.builder(
-                    padding: EdgeInsets.symmetric(vertical: 1.42.h),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 1.42.h,
-                      crossAxisSpacing: 3.08.w,
-                      childAspectRatio: 1.1,
+                    padding: EdgeInsets.fromLTRB(
+                      0,
+                      1.6.h,
+                      0,
+                      1.6.h + keyboardInset,
                     ),
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    gridDelegate: pickerGridDelegate(),
                     itemCount: subCategories.length,
                     itemBuilder: (context, index) {
                       final subCategory = subCategories[index];
-                      final isSelected = subCategory.id == selected?.id;
-                      return _SubCategoryGridTile(
-                        subCategory: subCategory,
-                        isSelected: isSelected,
+                      return PickerOptionTile(
+                        name: subCategory.name,
+                        imageUrl: subCategory.imageUrl,
+                        fallbackIcon: Icons.design_services_outlined,
+                        isSelected: subCategory.id == widget.selected?.id,
                         onTap: () => Navigator.pop(context, subCategory),
                       );
                     },
@@ -123,71 +152,6 @@ class _SubCategoryBottomSheetBody extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _SubCategoryGridTile extends StatelessWidget {
-  final SubCategoryModel subCategory;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _SubCategoryGridTile({
-    required this.subCategory,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(3.08.w),
-      child: Container(
-        padding: EdgeInsets.all(2.56.w),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(3.08.w),
-          border: Border.all(
-            color: isSelected
-                ? colorScheme.primary
-                : colorScheme.outlineVariant,
-            width: isSelected ? 2 : 1,
-          ),
-          color: isSelected
-              ? colorScheme.primary.withValues(alpha: 0.06)
-              : null,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 12.31.w,
-              height: 12.31.w,
-              child: _fallbackIcon(context),
-            ),
-            SizedBox(height: 0.95.h),
-            Text(
-              subCategory.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _fallbackIcon(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(2.05.w),
-      ),
-      child: Icon(Icons.storefront_outlined, size: 26.sp),
     );
   }
 }
