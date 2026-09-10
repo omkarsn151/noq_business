@@ -23,7 +23,7 @@ class VerificationCard extends StatelessWidget {
     final items = verification.items;
     return SectionCard(
       title: 'Business Verification',
-      actionLabel: 'Manage',
+      actionLabel: '',
       onActionTap: onManageTap,
       child: ListView.separated(
         shrinkWrap: true,
@@ -90,8 +90,8 @@ class _DocumentRow extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(width: 1.w),
-          Icon(Icons.chevron_right, size: 16.sp, color: AppColors.textSecondary),
+          // SizedBox(width: 1.w),
+          // Icon(Icons.chevron_right, size: 16.sp, color: AppColors.textSecondary),
         ],
       ),
     );
