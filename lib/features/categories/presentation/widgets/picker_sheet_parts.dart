@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:noq_business/core/common/app_button.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 
@@ -164,54 +165,49 @@ SliverGridDelegate pickerGridDelegate() {
   );
 }
 
-/// Placeholder tiles shown while the list is loading.
-class PickerGridSkeleton extends StatefulWidget {
+/// Placeholder tiles shown while the list is loading, shaped to match
+/// [PickerOptionTile]'s bottom-left name and subtitle.
+class PickerGridSkeleton extends StatelessWidget {
   final int itemCount;
 
   const PickerGridSkeleton({super.key, this.itemCount = 6});
 
   @override
-  State<PickerGridSkeleton> createState() => _PickerGridSkeletonState();
+  Widget build(BuildContext context) {
+    return Skeletonizer(
+      child: GridView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(vertical: 1.6.h),
+        gridDelegate: pickerGridDelegate(),
+        itemCount: itemCount,
+        itemBuilder: (context, index) => const _PickerTileSkeleton(),
+      ),
+    );
+  }
 }
 
-class _PickerGridSkeletonState extends State<PickerGridSkeleton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+class _PickerTileSkeleton extends StatelessWidget {
+  const _PickerTileSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(vertical: 1.6.h),
-      gridDelegate: pickerGridDelegate(),
-      itemCount: widget.itemCount,
-      itemBuilder: (context, index) {
-        return AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Color.lerp(
-                  AppColors.textfieldFilledColor,
-                  AppColors.borderLight,
-                  _controller.value,
-                ),
-                borderRadius: BorderRadius.circular(3.08.w),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-            );
-          },
-        );
-      },
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(3.08.w),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      padding: EdgeInsets.fromLTRB(3.2.w, 3.w, 3.2.w, 3.w),
+      alignment: Alignment.bottomLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Bone.text(width: 22.w, fontSize: 15),
+          SizedBox(height: 0.6.h),
+          Bone.text(width: 16.w),
+        ],
+      ),
     );
   }
 }
