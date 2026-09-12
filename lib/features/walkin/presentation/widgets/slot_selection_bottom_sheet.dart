@@ -12,6 +12,7 @@ import 'package:noq_business/features/walkin/bloc/walkin_slots_state.dart';
 import 'package:noq_business/features/walkin/data/walkin_slot_math.dart';
 import 'package:noq_business/features/walkin/data/walkin_slot_selection.dart';
 import 'package:noq_business/features/walkin/data/walkin_slots_model.dart';
+import 'package:noq_business/features/walkin/presentation/widgets/slot_selection_loading_widget.dart';
 import 'package:noq_business/features/walkin/repository/walkin_repository.dart';
 
 /// Date + time picker, returning the highlighted run of chips.
@@ -134,7 +135,7 @@ class _SheetContent extends StatelessWidget {
   Widget build(BuildContext context) {
     if (state.status == WalkinSlotsStatus.initial ||
         state.status == WalkinSlotsStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SlotSelectionLoadingWidget();
     }
 
     if (state.status == WalkinSlotsStatus.failure) {
@@ -293,7 +294,7 @@ class _TimeSection extends StatelessWidget {
     if (state.isTimesLoading) {
       return SizedBox(
         height: 20.h,
-        child: const Center(child: CircularProgressIndicator()),
+        child: const SlotTimeGridLoadingWidget(),
       );
     }
 
