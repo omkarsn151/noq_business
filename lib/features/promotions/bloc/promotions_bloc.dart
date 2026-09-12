@@ -19,7 +19,7 @@ class PromotionsBloc extends Bloc<PromotionsEvent, PromotionsState> {
     Emitter<PromotionsState> emit,
   ) async {
     emit(PromotionsState(counts: state.counts));
-    add(PromotionsRequested(status: event.status, refresh: true));
+    add(PromotionsRequested(status: event.status));
   }
 
   Future<void> _onPromotionsRequested(
@@ -27,9 +27,6 @@ class PromotionsBloc extends Bloc<PromotionsEvent, PromotionsState> {
     Emitter<PromotionsState> emit,
   ) async {
     final tab = state.tabFor(event.status);
-
-    // Tabs keep their promotions once loaded, so switching back is instant.
-    if (!event.refresh && tab.status == PromotionsTabStatus.success) return;
 
     emit(
       state.copyWithTab(

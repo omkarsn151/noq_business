@@ -8,16 +8,14 @@ abstract class PromotionsEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Loads the first page of [status]. Already loaded tabs are served from the
-/// cached state unless [refresh] is set.
+/// Loads the first page of [status].
 class PromotionsRequested extends PromotionsEvent {
   final PromotionStatus status;
-  final bool refresh;
 
-  const PromotionsRequested({required this.status, this.refresh = false});
+  const PromotionsRequested({required this.status});
 
   @override
-  List<Object?> get props => [status, refresh];
+  List<Object?> get props => [status];
 }
 
 /// Drops every cached tab and reloads [status]. Used after a promotion is

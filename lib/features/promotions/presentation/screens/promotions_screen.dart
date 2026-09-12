@@ -16,6 +16,7 @@ import 'package:noq_business/features/promotions/bloc/promotions_state.dart';
 import 'package:noq_business/features/promotions/data/promotion_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_status.dart';
 import 'package:noq_business/features/promotions/presentation/widgets/promotion_card.dart';
+import 'package:noq_business/features/promotions/presentation/widgets/promotions_loading_widget.dart';
 
 String _formatValidity(PromotionValidity validity) {
   final from = validity.from?.toLocal();
@@ -46,7 +47,7 @@ class _PromotionsScreenState extends State<PromotionsScreen>
     super.initState();
     _tabController.addListener(_onTabChanged);
     context.read<PromotionsBloc>().add(
-      PromotionsRequested(status: PromotionStatus.values.first, refresh: true),
+      PromotionsRequested(status: PromotionStatus.values.first),
     );
   }
 
@@ -138,9 +139,7 @@ class _PromotionsList extends StatelessWidget {
   const _PromotionsList({required this.status, required this.tab});
 
   void _loadFirstPage(BuildContext context) {
-    context.read<PromotionsBloc>().add(
-      PromotionsRequested(status: status, refresh: true),
-    );
+    context.read<PromotionsBloc>().add(PromotionsRequested(status: status));
   }
 
   void _onCardAction(
@@ -208,7 +207,7 @@ class _PromotionsList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tab.status == PromotionsTabStatus.initial ||
         tab.status == PromotionsTabStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const PromotionsLoadingWidget();
     }
 
     if (tab.status == PromotionsTabStatus.failure) {

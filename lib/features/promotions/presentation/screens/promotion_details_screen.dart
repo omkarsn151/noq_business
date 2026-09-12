@@ -19,6 +19,7 @@ import 'package:noq_business/features/promotions/bloc/promotions_event.dart';
 import 'package:noq_business/features/promotions/data/promotion_details_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_model.dart';
 import 'package:noq_business/features/promotions/data/promotion_status.dart';
+import 'package:noq_business/features/promotions/presentation/widgets/promotion_details_loading_widget.dart';
 import 'package:noq_business/core/common/app_info_row.dart';
 
 /// '10 Aug 2026 - 30 Sep 2026' for the dates the promo runs between.
@@ -80,7 +81,7 @@ class _PromotionDetailsScreenState extends State<PromotionDetailsScreen> {
             builder: (context, state) {
               if (state is PromotionDetailsInitial ||
                   state is PromotionDetailsLoading) {
-                return const Center(child: CircularProgressIndicator());
+                return const PromotionDetailsLoadingWidget();
               }
 
               if (state is PromotionDetailsFailure) {
