@@ -17,6 +17,7 @@ import 'package:noq_business/features/bookings/data/booking_model.dart';
 import 'package:noq_business/features/bookings/data/booking_status.dart';
 import 'package:noq_business/features/bookings/presentation/booking_action_flow.dart';
 import 'package:noq_business/features/bookings/presentation/widgets/booking_card.dart';
+import 'package:noq_business/features/bookings/presentation/widgets/bookings_loading_widget.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -201,11 +202,11 @@ class _BookingsList extends StatelessWidget {
         if (!context.mounted) return;
         context.read<BookingsBloc>().add(BookingsRequested(status: status));
       });
-      return const Center(child: CircularProgressIndicator());
+      return const BookingsLoadingWidget();
     }
 
     if (tab.status == BookingsTabStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const BookingsLoadingWidget();
     }
 
     if (tab.status == BookingsTabStatus.failure) {
