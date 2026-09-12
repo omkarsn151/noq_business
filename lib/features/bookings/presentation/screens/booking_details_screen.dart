@@ -20,6 +20,7 @@ import 'package:noq_business/features/bookings/data/booking_detail_model.dart';
 import 'package:noq_business/features/bookings/data/booking_detail_status.dart';
 import 'package:noq_business/features/bookings/data/booking_status.dart';
 import 'package:noq_business/features/bookings/presentation/booking_action_flow.dart';
+import 'package:noq_business/features/bookings/presentation/widgets/booking_details_loading_widget.dart';
 import 'package:noq_business/features/bookings/presentation/widgets/booking_status_chip.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
@@ -116,7 +117,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
 
   Widget _buildBody(BookingDetailsState state) {
     if (state is BookingDetailsInitial || state is BookingDetailsLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const BookingDetailsLoadingWidget();
     }
 
     if (state is BookingDetailsFailure) {
