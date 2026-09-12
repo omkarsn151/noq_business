@@ -10,6 +10,7 @@ import 'package:noq_business/features/insights/bloc/insights_state.dart';
 import 'package:noq_business/features/insights/data/insights_model.dart';
 import 'package:noq_business/features/insights/presentation/widgets/customer_actions_card.dart';
 import 'package:noq_business/features/insights/presentation/widgets/insight_stat_card.dart';
+import 'package:noq_business/features/insights/presentation/widgets/insights_loading_widget.dart';
 import 'package:noq_business/features/insights/presentation/widgets/performance_line_chart.dart';
 import 'package:noq_business/features/insights/presentation/widgets/period_filter_sheet.dart';
 import 'package:noq_business/features/insights/presentation/widgets/period_selector.dart';
@@ -29,7 +30,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 
   void _load() {
-    context.read<InsightsBloc>().add(const InsightsRequested(refresh: true));
+    context.read<InsightsBloc>().add(const InsightsRequested());
   }
 
   Future<void> _pickPeriod(InsightsPeriod current) async {
@@ -64,7 +65,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   Widget _body(InsightsState state) {
     if (state is InsightsInitial || state is InsightsLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const InsightsLoadingWidget();
     }
 
     if (state is InsightsFailure) {

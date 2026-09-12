@@ -28,18 +28,11 @@ class InsightsBloc extends Bloc<InsightsEvent, InsightsState> {
     InsightsRequested event,
     Emitter<InsightsState> emit,
   ) async {
-    await _load(emit, keepContent: event.refresh);
+    await _load(emit);
   }
 
-  Future<void> _load(
-    Emitter<InsightsState> emit, {
-    bool keepContent = false,
-  }) async {
-    // On a pull to refresh the RefreshIndicator already shows a spinner, so
-    // keep the loaded payload on screen instead of flashing back to one.
-    if (!(keepContent && state is InsightsSuccess)) {
-      emit(InsightsLoading(_period));
-    }
+  Future<void> _load(Emitter<InsightsState> emit) async {
+    emit(InsightsLoading(_period));
 
     try {
       final insights = await _repository.getInsights(period: _period);

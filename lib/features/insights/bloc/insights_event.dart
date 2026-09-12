@@ -10,14 +10,7 @@ abstract class InsightsEvent extends Equatable {
 
 /// Loads the currently selected period.
 class InsightsRequested extends InsightsEvent {
-  /// Set on a pull to refresh, so the loaded payload stays on screen while the
-  /// new one is fetched.
-  final bool refresh;
-
-  const InsightsRequested({this.refresh = false});
-
-  @override
-  List<Object?> get props => [refresh];
+  const InsightsRequested();
 }
 
 /// Switches the filter and reloads. A tap on the active period is ignored.
