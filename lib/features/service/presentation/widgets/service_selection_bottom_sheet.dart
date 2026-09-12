@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sizer/sizer.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:noq_business/core/common/app_button.dart';
 import 'package:noq_business/core/common/app_search_field.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
@@ -333,7 +334,7 @@ class _ServiceRow extends StatelessWidget {
         padding: EdgeInsets.all(2.8.w),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryLight
+              ? AppColors.primary.withValues(alpha: 0.05)
               : AppColors.textfieldFilledColor,
           borderRadius: radius,
           border: Border.all(
@@ -518,55 +519,84 @@ class _SelectionBox extends StatelessWidget {
   }
 }
 
-/// Pulsing row placeholders shown while the services load.
-class _ServiceListSkeleton extends StatefulWidget {
+/// Shimmering row placeholders shown while the services load, shaped to
+/// match [_ServiceRow].
+class _ServiceListSkeleton extends StatelessWidget {
   const _ServiceListSkeleton();
 
   static const int itemCount = 5;
 
   @override
-  State<_ServiceListSkeleton> createState() => _ServiceListSkeletonState();
+  Widget build(BuildContext context) {
+    return Skeletonizer(
+      child: ListView.separated(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(vertical: 1.6.h),
+        itemCount: itemCount,
+        separatorBuilder: (_, _) => SizedBox(height: 1.2.h),
+        itemBuilder: (context, index) => const _ServiceRowSkeleton(),
+      ),
+    );
+  }
 }
 
-class _ServiceListSkeletonState extends State<_ServiceListSkeleton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+class _ServiceRowSkeleton extends StatelessWidget {
+  const _ServiceRowSkeleton();
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(vertical: 1.6.h),
-      itemCount: _ServiceListSkeleton.itemCount,
-      separatorBuilder: (_, _) => SizedBox(height: 1.2.h),
-      itemBuilder: (context, index) {
-        return AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            return Container(
-              height: 9.h,
-              decoration: BoxDecoration(
-                color: Color.lerp(
-                  AppColors.textfieldFilledColor,
-                  AppColors.borderLight,
-                  _controller.value,
+    final radius = BorderRadius.circular(3.08.w);
+
+    return Container(
+      padding: EdgeInsets.all(2.8.w),
+      decoration: BoxDecoration(
+        color: AppColors.textfieldFilledColor,
+        borderRadius: radius,
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        children: [
+          Bone(
+            width: 13.w,
+            height: 13.w,
+            borderRadius: BorderRadius.circular(2.6.w),
+          ),
+          SizedBox(width: 3.2.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Bone.text(width: 35.w, fontSize: 14.5),
+                SizedBox(height: 0.6.h),
+                Bone.text(width: 45.w),
+                SizedBox(height: 0.8.h),
+                Row(
+                  children: [
+                    Bone(
+                      width: 16.w,
+                      height: 2.5.h,
+                      borderRadius: BorderRadius.circular(5.w),
+                    ),
+                    SizedBox(width: 2.w),
+                    Bone(
+                      width: 14.w,
+                      height: 2.5.h,
+                      borderRadius: BorderRadius.circular(5.w),
+                    ),
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(3.08.w),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-            );
-          },
-        );
-      },
+              ],
+            ),
+          ),
+          SizedBox(width: 2.w),
+          Bone(
+            width: 5.5.w,
+            height: 5.5.w,
+            borderRadius: BorderRadius.circular(1.6.w),
+          ),
+        ],
+      ),
     );
   }
 }
