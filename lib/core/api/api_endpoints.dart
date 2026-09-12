@@ -85,6 +85,10 @@ class ApiEndpoints {
 
   static const String getTodaysBookings = "v1/business/bookings/today";
 
+  static const String bookingAction = "v1/business/bookings/";
+
+  static const String getRescheduleSlots = "v1/business/bookings/";
+
   //====================Walkin====================
   static const String getWalkinSlots = "v1/business/walk-ins/slots";
 

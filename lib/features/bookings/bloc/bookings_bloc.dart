@@ -29,7 +29,13 @@ class BookingsBloc extends Bloc<BookingsEvent, BookingsState> {
     final tab = state.tabFor(event.status);
 
     // Tabs keep their bookings once loaded, so switching back is instant.
-    if (!event.refresh && tab.status == BookingsTabStatus.success) return;
+    // A load already under way is left alone too, so a tab that asks for
+    // itself while it is filling does not fetch the same page twice.
+    if (!event.refresh &&
+        (tab.status == BookingsTabStatus.success ||
+            tab.status == BookingsTabStatus.loading)) {
+      return;
+    }
 
     emit(
       state.copyWithTab(

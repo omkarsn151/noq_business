@@ -2,7 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/common/app_button.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
-import 'package:noq_business/features/bookings/data/booking_status.dart';
+import 'package:noq_business/features/bookings/data/booking_detail_status.dart';
+
+/// Everything the card can ask the screen to do. Reschedule and cancel live in
+/// the overflow menu; the rest are footer buttons.
+enum BookingCardAction {
+  approve,
+  reject,
+  start,
+  noShow,
+  complete,
+  reschedule,
+  cancel,
+
+  /// Answers a customer's request to move a booking. Separate from [approve] /
+  /// [reject], which answer the booking itself.
+  approveReschedule,
+  rejectReschedule,
+}
 
 /// Booking request card - customer, service details, slot range and a footer
 /// that changes with the booking [status].
@@ -12,7 +29,7 @@ class BookingCard extends StatelessWidget {
   final String duration;
   final String startTime;
   final String endTime;
-  final BookingStatus status;
+  final BookingDetailStatus status;
 
   /// Adds a 'Walk-in' chip next to the service details.
   final bool isWalkIn;
@@ -27,10 +44,17 @@ class BookingCard extends StatelessWidget {
   final String? requestedStartTime;
   final String? requestedEndTime;
 
+  /// No Show only makes sense once the booked slot has run out. The screen
+  /// works this out from the booking's scheduled end.
+  final bool canNoShow;
+
+  /// An action on this booking is in flight - buttons spin and the menu is
+  /// closed off.
+  final bool isBusy;
+
   /// Opens the booking details screen.
   final VoidCallback? onTap;
-  final VoidCallback? onReject;
-  final VoidCallback? onApprove;
+  final ValueChanged<BookingCardAction>? onAction;
 
   const BookingCard({
     super.key,
@@ -44,10 +68,28 @@ class BookingCard extends StatelessWidget {
     this.isRescheduleRequest = false,
     this.requestedStartTime,
     this.requestedEndTime,
+    this.canNoShow = false,
+    this.isBusy = false,
     this.onTap,
-    this.onReject,
-    this.onApprove,
+    this.onAction,
   });
+
+  void _fire(BookingCardAction action) => onAction?.call(action);
+
+  /// Cancel is valid on a pending or confirmed booking, Reschedule only once
+  /// it is confirmed - mirroring the `can_cancel` / `can_reschedule` flags the
+  /// details endpoint returns, which list rows do not carry.
+  ///
+  /// Reschedule-request rows answer the customer's request rather than the
+  /// booking, so they get no menu at all.
+  bool get _canCancel =>
+      status == BookingDetailStatus.pending ||
+      status == BookingDetailStatus.confirmed;
+
+  bool get _canReschedule => status == BookingDetailStatus.confirmed;
+
+  bool get _hasMenu =>
+      onAction != null && !isRescheduleRequest && (_canCancel || _canReschedule);
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +163,7 @@ class BookingCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (_hasMenu) ...[SizedBox(width: 1.w), _buildMenu()],
             ],
           ),
           SizedBox(height: 1.5.h),
@@ -163,80 +206,172 @@ class BookingCard extends StatelessWidget {
     );
   }
 
+  Widget _buildMenu() {
+    return PopupMenuButton<BookingCardAction>(
+      enabled: !isBusy,
+      onSelected: _fire,
+      itemBuilder: (_) => [
+        if (_canReschedule)
+          const PopupMenuItem(
+            value: BookingCardAction.reschedule,
+            child: Text('Reschedule'),
+          ),
+        if (_canReschedule && _canCancel) const PopupMenuDivider(),
+        if (_canCancel)
+          const PopupMenuItem(
+            value: BookingCardAction.cancel,
+            child: Text('Cancel'),
+          ),
+      ],
+      padding: EdgeInsets.all(1.w),
+      menuPadding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
+      color: AppColors.background,
+      surfaceTintColor: AppColors.background,
+      elevation: 4,
+      shadowColor: AppColors.borderLight,
+      position: PopupMenuPosition.under,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(2.5.w),
+      ),
+      icon: Icon(Icons.more_vert, size: 17.sp, color: AppColors.textPrimary),
+    );
+  }
+
+  /// Buttons follow the booking's own life stage. A reschedule request is the
+  /// exception: whatever the booking's status, the row answers the request.
   Widget _buildFooter(BuildContext context) {
-    if (isRescheduleRequest) return _pendingActions(context);
+    if (isRescheduleRequest) {
+      // On a reschedule row [status] is the *request's* own status, so a
+      // waiting one is answerable and anything else is history.
+      if (status != BookingDetailStatus.pending) {
+        // Always qualified as the *time change*, never a bare 'Rejected':
+        // turning down a new time is not turning down the booking, which is
+        // usually still alive on its original slot.
+        return _StatusLabel(
+          icon: Icons.event_busy_outlined,
+          color: AppColors.textSecondary,
+          label: 'Time change rejected',
+        );
+      }
+
+      return _actionRow([
+        _reject(
+          label: 'Reject',
+          action: BookingCardAction.rejectReschedule,
+        ),
+        _accept(
+          label: 'Approve',
+          action: BookingCardAction.approveReschedule,
+        ),
+      ]);
+    }
 
     switch (status) {
-      case BookingStatus.pending:
-        return _pendingActions(context);
-      case BookingStatus.approved:
+      case BookingDetailStatus.pending:
+        return _actionRow([
+          _reject(label: 'Reject'),
+          _accept(label: 'Accept'),
+        ]);
+      case BookingDetailStatus.confirmed:
+        return _actionRow([
+          // Nobody can be a no-show until their slot has actually run out.
+          if (canNoShow)
+            _reject(label: 'No Show', action: BookingCardAction.noShow),
+          _accept(label: 'Start', action: BookingCardAction.start),
+        ]);
+      case BookingDetailStatus.inProgress:
+        return _actionRow([
+          _accept(label: 'Complete', action: BookingCardAction.complete),
+        ]);
+      case BookingDetailStatus.completed:
         return _StatusLabel(
-          icon: Icons.check,
+          icon: Icons.check_circle,
           color: AppColors.success,
-          label: 'Approved',
+          label: 'Completed',
         );
-      case BookingStatus.rejected:
+      case BookingDetailStatus.noShow:
+        return _StatusLabel(
+          icon: Icons.person_off_outlined,
+          color: AppColors.orange,
+          label: 'No Show',
+        );
+      case BookingDetailStatus.rejected:
         return _StatusLabel(
           icon: Icons.cancel,
           color: AppColors.error,
           label: 'Rejected',
         );
-      case BookingStatus.cancelled:
+      case BookingDetailStatus.cancelled:
         return _StatusLabel(
           icon: Icons.block,
           color: AppColors.textSecondary,
           label: 'Cancelled',
         );
+      case BookingDetailStatus.dismissed:
+        return _StatusLabel(
+          icon: Icons.timer_off_outlined,
+          color: AppColors.textSecondary,
+          label: 'Dismissed',
+        );
     }
   }
 
-  Widget _pendingActions(BuildContext context) {
+  Widget _actionRow(List<Widget> buttons) {
     return Padding(
-          padding: EdgeInsets.only(left: 12.w),
-          child: Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: 'Reject',
-                  onPressed: onReject,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.background,
-                    foregroundColor: AppColors.primary,
-                    elevation: 0,
-                    minimumSize: Size(double.infinity, 5.h),
-                    side: const BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(2.5.w),
-                    ),
-                    textStyle: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 3.w),
-              Expanded(
-                child: AppButton(
-                  label: 'Approve',
-                  onPressed: onApprove,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.background,
-                    elevation: 0,
-                    minimumSize: Size(double.infinity, 5.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(2.5.w),
-                    ),
-                    textStyle: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+      padding: EdgeInsets.only(left: 12.w),
+      child: Row(
+        children: [
+          for (var i = 0; i < buttons.length; i++) ...[
+            if (i > 0) SizedBox(width: 3.w),
+            Expanded(child: buttons[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// The outlined, secondary half of an action pair.
+  Widget _reject({
+    required String label,
+    BookingCardAction action = BookingCardAction.reject,
+  }) {
+    return AppButton(
+      label: label,
+      isLoading: isBusy,
+      onPressed: onAction == null ? null : () => _fire(action),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.primary,
+        elevation: 0,
+        minimumSize: Size(double.infinity, 5.h),
+        side: const BorderSide(color: AppColors.primary),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(2.5.w),
+        ),
+        textStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  /// The filled, primary half of an action pair.
+  Widget _accept({
+    required String label,
+    BookingCardAction action = BookingCardAction.approve,
+  }) {
+    return AppButton(
+      label: label,
+      isLoading: isBusy,
+      onPressed: onAction == null ? null : () => _fire(action),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.background,
+        elevation: 0,
+        minimumSize: Size(double.infinity, 5.h),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(2.5.w),
+        ),
+        textStyle: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }
@@ -307,7 +442,6 @@ class _SlotRow extends StatelessWidget {
     final style = Theme.of(context).textTheme.bodySmall?.copyWith(
       color: color,
       fontWeight: fontWeight,
-      decoration: strikeThrough ? TextDecoration.lineThrough : null,
       decorationColor: color,
     );
 

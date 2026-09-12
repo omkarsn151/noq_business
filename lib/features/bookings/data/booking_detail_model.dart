@@ -310,6 +310,156 @@ class BookingDetailRejection {
   }
 }
 
+/// Who asked for the time change, and what to call them.
+class BookingDetailRescheduleRequestedBy {
+  /// 'customer' - the visitor asked and may still be waiting.
+  /// 'business' - the shop already moved the visit itself.
+  final String role;
+  final String name;
+
+  const BookingDetailRescheduleRequestedBy({this.role = '', this.name = ''});
+
+  factory BookingDetailRescheduleRequestedBy.fromJson(
+    Map<String, dynamic>? json,
+  ) {
+    if (json == null) return const BookingDetailRescheduleRequestedBy();
+    return BookingDetailRescheduleRequestedBy(
+      role: json['role']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+    );
+  }
+
+  bool get isByBusiness => role == 'business';
+
+  /// Heading for the card - the shop moving a visit and a customer asking to
+  /// are the same block with different words.
+  String get label => isByBusiness ? 'Rescheduled by' : 'Requested by';
+}
+
+/// The old window, the proposed window, and the chips that were tapped.
+class BookingDetailRescheduleSchedule {
+  /// Where the visit sat when the request was made - the left side of the
+  /// old -> new arrow. Copied onto the request at that moment, so it still
+  /// reads correctly long afterwards.
+  final DateTime? previousStart;
+  final DateTime? previousEnd;
+
+  /// Where the customer wants the visit to go. Not reserved while the request
+  /// waits, which is why approving it can honestly fail.
+  final DateTime? proposedStart;
+  final DateTime? proposedEnd;
+  final int totalDurationMinutes;
+
+  /// Every chip the customer tapped, in order. Shown for honesty - the card
+  /// reads [proposedStart] / [proposedEnd], not this list.
+  final List<DateTime> proposedSlots;
+
+  /// The shop's IANA timezone. Times on the wire are UTC.
+  final String timezone;
+
+  const BookingDetailRescheduleSchedule({
+    this.previousStart,
+    this.previousEnd,
+    this.proposedStart,
+    this.proposedEnd,
+    this.totalDurationMinutes = 0,
+    this.proposedSlots = const [],
+    this.timezone = '',
+  });
+
+  factory BookingDetailRescheduleSchedule.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const BookingDetailRescheduleSchedule();
+    return BookingDetailRescheduleSchedule(
+      previousStart: DateTime.tryParse(
+        json['previous_start']?.toString() ?? '',
+      ),
+      previousEnd: DateTime.tryParse(json['previous_end']?.toString() ?? ''),
+      proposedStart: DateTime.tryParse(
+        json['proposed_start']?.toString() ?? '',
+      ),
+      proposedEnd: DateTime.tryParse(json['proposed_end']?.toString() ?? ''),
+      totalDurationMinutes:
+          (json['total_duration_minutes'] as num?)?.toInt() ?? 0,
+      proposedSlots: (json['proposed_slots'] as List? ?? [])
+          .map((slot) => DateTime.tryParse(slot?.toString() ?? ''))
+          .whereType<DateTime>()
+          .toList(),
+      timezone: json['timezone']?.toString() ?? '',
+    );
+  }
+
+  String get durationLabel => '$totalDurationMinutes min';
+}
+
+/// A request to move this booking to a different time.
+///
+/// Null on a booking that has never had one - the normal case - so its presence
+/// is the single test for whether to draw the section. An answered request
+/// stays here as history, and only the newest one is ever returned.
+class BookingDetailRescheduleRequest {
+  final String id;
+
+  /// The *request's* own life stage - `pending`, `approved` or `rejected` -
+  /// never the booking's, which answering a request never changes. A
+  /// `confirmed` booking with a `pending` request is completely normal.
+  final BookingDetailStatus status;
+  final BookingDetailRescheduleRequestedBy requestedBy;
+  final DateTime? createdAt;
+
+  /// When the shop answered. Null while the request is still pending.
+  final DateTime? resolvedAt;
+
+  /// Why it was turned down. Null unless [status] is rejected. May be the
+  /// shop's own words or a sentence the API writes when the request was closed
+  /// because something else happened first.
+  final String? rejectionReason;
+  final BookingDetailRescheduleSchedule schedule;
+
+  /// Who was asked for on the *proposed* visit - read off the request, not off
+  /// the booking, which still describes the old appointment while this waits.
+  final BookingDetailStaff staff;
+
+  const BookingDetailRescheduleRequest({
+    this.id = '',
+    this.status = BookingDetailStatus.pending,
+    this.requestedBy = const BookingDetailRescheduleRequestedBy(),
+    this.createdAt,
+    this.resolvedAt,
+    this.rejectionReason,
+    this.schedule = const BookingDetailRescheduleSchedule(),
+    this.staff = const BookingDetailStaff(),
+  });
+
+  static BookingDetailRescheduleRequest? fromJson(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    return BookingDetailRescheduleRequest(
+      id: json['id']?.toString() ?? '',
+      status: BookingDetailStatus.fromString(json['status']?.toString()),
+      requestedBy: BookingDetailRescheduleRequestedBy.fromJson(
+        json['requested_by'] as Map<String, dynamic>?,
+      ),
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
+      resolvedAt: DateTime.tryParse(json['resolved_at']?.toString() ?? ''),
+      rejectionReason: json['rejection_reason']?.toString(),
+      schedule: BookingDetailRescheduleSchedule.fromJson(
+        json['schedule'] as Map<String, dynamic>?,
+      ),
+      staff: BookingDetailStaff.fromJson(
+        json['staff'] as Map<String, dynamic>?,
+      ),
+    );
+  }
+
+  /// Nobody has answered yet, so the visit is still at its old time.
+  bool get isPending => status == BookingDetailStatus.pending;
+
+  /// Already answered - the card reads as history rather than a question.
+  bool get isResolved => !isPending;
+
+  bool get hasRejectionReason =>
+      rejectionReason != null && rejectionReason!.trim().isNotEmpty;
+}
+
 /// Which buttons to draw. Read these instead of switching on the status.
 class BookingDetailActions {
   final bool canApprove;
@@ -318,12 +468,31 @@ class BookingDetailActions {
   final bool canNoShow;
   final bool canComplete;
 
+  /// The two that live in the overflow menu rather than the bottom bar.
+  /// [canReschedule] is true only while confirmed; [canCancel] while pending
+  /// or confirmed.
+  final bool canReschedule;
+  final bool canCancel;
+
+  /// The two that answer a customer's *reschedule request* rather than the
+  /// booking. Both need a pending request; approving also needs the booking
+  /// itself to be confirmed, so Reject can be on while Approve is off.
+  ///
+  /// These are never [canApprove] / [canReject], which are only ever about
+  /// accepting a new booking.
+  final bool canApproveReschedule;
+  final bool canRejectReschedule;
+
   const BookingDetailActions({
     this.canApprove = false,
     this.canReject = false,
     this.canStart = false,
     this.canNoShow = false,
     this.canComplete = false,
+    this.canReschedule = false,
+    this.canCancel = false,
+    this.canApproveReschedule = false,
+    this.canRejectReschedule = false,
   });
 
   factory BookingDetailActions.fromJson(Map<String, dynamic>? json) {
@@ -334,11 +503,22 @@ class BookingDetailActions {
       canStart: json['can_start'] as bool? ?? false,
       canNoShow: json['can_no_show'] as bool? ?? false,
       canComplete: json['can_complete'] as bool? ?? false,
+      canReschedule: json['can_reschedule'] as bool? ?? false,
+      canCancel: json['can_cancel'] as bool? ?? false,
+      canApproveReschedule: json['can_approve_reschedule'] as bool? ?? false,
+      canRejectReschedule: json['can_reject_reschedule'] as bool? ?? false,
     );
   }
 
+  /// Buttons drawn in the bottom bar.
   bool get hasAny =>
       canApprove || canReject || canStart || canNoShow || canComplete;
+
+  /// Items drawn in the app bar overflow menu.
+  bool get hasMenu => canReschedule || canCancel;
+
+  /// Buttons drawn on the reschedule request card.
+  bool get hasRescheduleAnswer => canApproveReschedule || canRejectReschedule;
 }
 
 /// Grouped payload for GET /business/bookings/{booking_id} - the whole screen.
@@ -356,6 +536,10 @@ class BookingDetailModel {
 
   /// Only present when the booking was rejected.
   final BookingDetailRejection? rejection;
+
+  /// The customer's request to move this booking, pending or already answered.
+  /// Null when there has never been one - the normal case.
+  final BookingDetailRescheduleRequest? rescheduleRequest;
   final BookingDetailActions actions;
 
   const BookingDetailModel({
@@ -368,6 +552,7 @@ class BookingDetailModel {
     required this.payment,
     this.cancellation,
     this.rejection,
+    this.rescheduleRequest,
     required this.actions,
   });
 
@@ -401,6 +586,9 @@ class BookingDetailModel {
       ),
       rejection: BookingDetailRejection.fromJson(
         data['rejection'] as Map<String, dynamic>?,
+      ),
+      rescheduleRequest: BookingDetailRescheduleRequest.fromJson(
+        data['reschedule_request'] as Map<String, dynamic>?,
       ),
       actions: BookingDetailActions.fromJson(
         data['actions'] as Map<String, dynamic>?,

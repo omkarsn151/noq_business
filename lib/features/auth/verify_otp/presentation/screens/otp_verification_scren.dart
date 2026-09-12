@@ -14,7 +14,7 @@ import 'package:noq_business/features/auth/request_otp/bloc/request_otp_state.da
 import 'package:noq_business/features/auth/verify_otp/bloc/verify_otp_bloc.dart';
 import 'package:noq_business/features/auth/verify_otp/bloc/verify_otp_event.dart';
 import 'package:noq_business/features/auth/verify_otp/bloc/verify_otp_state.dart';
-import 'package:noq_business/features/auth/verify_otp/presentation/widgets/otp_field.dart';
+import 'package:noq_business/core/common/otp_field.dart';
 import 'package:noq_business/core/utils/app_assets.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 

@@ -4,12 +4,18 @@ import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/common/app_appbar.dart';
 import 'package:noq_business/core/common/app_pill_tab_bar.dart';
+import 'package:noq_business/core/common/app_snackbar.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/core/utils/date_formats.dart';
+import 'package:noq_business/features/bookings/bloc/booking_action_bloc.dart';
+import 'package:noq_business/features/bookings/bloc/booking_action_state.dart';
 import 'package:noq_business/features/bookings/bloc/bookings_bloc.dart';
 import 'package:noq_business/features/bookings/bloc/bookings_event.dart';
 import 'package:noq_business/features/bookings/bloc/bookings_state.dart';
+import 'package:noq_business/features/bookings/data/booking_action.dart';
+import 'package:noq_business/features/bookings/data/booking_model.dart';
 import 'package:noq_business/features/bookings/data/booking_status.dart';
+import 'package:noq_business/features/bookings/presentation/booking_action_flow.dart';
 import 'package:noq_business/features/bookings/presentation/widgets/booking_card.dart';
 
 class BookingsScreen extends StatefulWidget {
@@ -50,44 +56,73 @@ class _BookingsScreenState extends State<BookingsScreen>
     );
   }
 
+  /// An action lands the booking in a different tab and shifts every count,
+  /// so the whole listing is dropped and the open tab reloaded.
+  void _onActionSettled(BuildContext context, BookingActionState state) {
+    if (state is BookingActionSuccess) {
+      AppSnackbar.success(context, state.message);
+      context.read<BookingsBloc>().add(
+        BookingsRefreshRequested(
+          status: BookingStatus.values[_tabController.index],
+        ),
+      );
+    } else if (state is BookingActionFailure) {
+      AppSnackbar.error(context, state.message);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const AppAppBar(
         showLeading: false,
         title: 'Bookings',
-        subtitle: 'Check your bookings, requests and rejected details',
+        subtitle: 'Track requests, visits in progress and past bookings',
       ),
       body: SafeArea(
-        child: BlocBuilder<BookingsBloc, BookingsState>(
-          builder: (context, state) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 2.h),
-                AppPillTabBar(
-                  controller: _tabController,
-                  labels: [
-                    for (final status in BookingStatus.values)
-                      '${status.label} ${state.counts.countFor(status)}',
-                  ],
-                ),
-                SizedBox(height: 2.h),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
+        child: BlocListener<BookingActionBloc, BookingActionState>(
+          listener: _onActionSettled,
+          child: BlocBuilder<BookingActionBloc, BookingActionState>(
+            builder: (context, actionState) {
+              // The one booking currently being acted on, so only its card
+              // shows a spinner.
+              final busyId = actionState is BookingActionInProgress
+                  ? actionState.bookingId
+                  : null;
+
+              return BlocBuilder<BookingsBloc, BookingsState>(
+                builder: (context, state) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (final status in BookingStatus.values)
-                        _BookingsList(
-                          status: status,
-                          tab: state.tabFor(status),
+                      SizedBox(height: 2.h),
+                      AppPillTabBar(
+                        controller: _tabController,
+                        labels: [
+                          for (final status in BookingStatus.values)
+                            '${status.label} ${state.counts.countFor(status)}',
+                        ],
+                      ),
+                      SizedBox(height: 2.h),
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            for (final status in BookingStatus.values)
+                              _BookingsList(
+                                status: status,
+                                tab: state.tabFor(status),
+                                busyBookingId: busyId,
+                              ),
+                          ],
                         ),
+                      ),
                     ],
-                  ),
-                ),
-              ],
-            );
-          },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -98,7 +133,41 @@ class _BookingsList extends StatelessWidget {
   final BookingStatus status;
   final BookingsTabState tab;
 
-  const _BookingsList({required this.status, required this.tab});
+  /// The booking with an action in flight, if any.
+  final String? busyBookingId;
+
+  const _BookingsList({
+    required this.status,
+    required this.tab,
+    this.busyBookingId,
+  });
+
+  /// Translates a card tap into the action the API knows about, then runs the
+  /// shared collect / confirm / dispatch flow.
+  void _onCardAction(
+    BuildContext context,
+    BookingModel booking,
+    BookingCardAction action,
+  ) {
+    const actions = {
+      BookingCardAction.approve: BookingAction.approve,
+      BookingCardAction.reject: BookingAction.reject,
+      BookingCardAction.start: BookingAction.start,
+      BookingCardAction.noShow: BookingAction.noShow,
+      BookingCardAction.complete: BookingAction.complete,
+      BookingCardAction.reschedule: BookingAction.reschedule,
+      BookingCardAction.cancel: BookingAction.cancel,
+      BookingCardAction.approveReschedule: BookingAction.approveReschedule,
+      BookingCardAction.rejectReschedule: BookingAction.rejectReschedule,
+    };
+
+    runBookingAction(
+      context,
+      bookingId: booking.id,
+      action: actions[action]!,
+      isWalkIn: booking.isWalkIn,
+    );
+  }
 
   void _loadFirstPage(BuildContext context) {
     context.read<BookingsBloc>().add(
@@ -123,8 +192,19 @@ class _BookingsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (tab.status == BookingsTabStatus.initial ||
-        tab.status == BookingsTabStatus.loading) {
+    if (tab.status == BookingsTabStatus.initial) {
+      // An action taken on the details screen drops every cached tab, so a tab
+      // can come back into view with nothing in it and nothing fetching. It
+      // asks for itself here; the bloc ignores the ask if a load is already
+      // running.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        context.read<BookingsBloc>().add(BookingsRequested(status: status));
+      });
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (tab.status == BookingsTabStatus.loading) {
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -167,20 +247,23 @@ class _BookingsList extends StatelessWidget {
               duration: booking.durationLabel,
               startTime: formatRelativeDateTime(booking.scheduledStart),
               endTime: formatRelativeDateTime(booking.scheduledEnd),
-              status: booking.status ?? status,
+              status: booking.status,
               isWalkIn: booking.isWalkIn,
               isRescheduleRequest: booking.isRescheduleRequest,
               requestedStartTime: formatRelativeDateTime(
                 booking.requestedStart,
               ),
               requestedEndTime: formatRelativeDateTime(booking.requestedEnd),
+              canNoShow: hasSlotPassed(booking.scheduledEnd),
+              isBusy: busyBookingId == booking.id,
               onTap: () => context.push('/bookings/${booking.id}'),
-              // TODO: wire up once the action endpoints are available. Regular
-              // rows go to POST v1/business/bookings/{id}/actions, reschedule
-              // rows to POST
-              // v1/business/reschedule-requests/{reschedule_request_id}/approve-reject.
-              onReject: () {},
-              onApprove: () {},
+              // Reschedule rows are answerable too - the card sends
+              // approve_reschedule / reject_reschedule with this same booking
+              // id. A refused one sits on the read-only Rejected tab, so the
+              // tab check already makes it inert.
+              onAction: status.isReadOnly
+                  ? null
+                  : (action) => _onCardAction(context, booking, action),
             );
           },
         ),

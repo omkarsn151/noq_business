@@ -8,10 +8,18 @@ import 'package:noq_business/core/common/app_info_row.dart';
 import 'package:noq_business/core/common/app_snackbar.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/core/utils/date_formats.dart';
+import 'package:noq_business/features/bookings/bloc/booking_action_bloc.dart';
+import 'package:noq_business/features/bookings/bloc/booking_action_state.dart';
 import 'package:noq_business/features/bookings/bloc/booking_details_bloc.dart';
 import 'package:noq_business/features/bookings/bloc/booking_details_event.dart';
 import 'package:noq_business/features/bookings/bloc/booking_details_state.dart';
+import 'package:noq_business/features/bookings/bloc/bookings_bloc.dart';
+import 'package:noq_business/features/bookings/bloc/bookings_event.dart';
+import 'package:noq_business/features/bookings/data/booking_action.dart';
 import 'package:noq_business/features/bookings/data/booking_detail_model.dart';
+import 'package:noq_business/features/bookings/data/booking_detail_status.dart';
+import 'package:noq_business/features/bookings/data/booking_status.dart';
+import 'package:noq_business/features/bookings/presentation/booking_action_flow.dart';
 import 'package:noq_business/features/bookings/presentation/widgets/booking_status_chip.dart';
 
 class BookingDetailsScreen extends StatefulWidget {
@@ -36,35 +44,128 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
     );
   }
 
+  void _run(BookingAction action, BookingDetailModel details) {
+    runBookingAction(
+      context,
+      bookingId: widget.bookingId,
+      action: action,
+      isWalkIn: details.booking.isWalkIn,
+    );
+  }
+
+  /// Repaints this screen with the new status and action flags, and drops the
+  /// list's cache so the tabs behind are right when the owner pops back.
+  void _onActionSettled(BuildContext context, BookingActionState state) {
+    if (state is BookingActionSuccess) {
+      AppSnackbar.success(context, state.message);
+      _load();
+      // A refresh drops *every* cached tab - the status named here only picks
+      // which one reloads eagerly, and Pending is the one the owner is most
+      // likely behind. The rest refetch as they come back into view.
+      context.read<BookingsBloc>().add(
+        const BookingsRefreshRequested(status: BookingStatus.pending),
+      );
+    } else if (state is BookingActionFailure) {
+      AppSnackbar.error(context, state.message);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const AppAppBar(title: 'Booking Details'),
-      body: SafeArea(
-        child: BlocBuilder<BookingDetailsBloc, BookingDetailsState>(
-          builder: (context, state) {
-            if (state is BookingDetailsInitial ||
-                state is BookingDetailsLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is BookingDetailsFailure) {
-              return _DetailsMessage(message: state.message, onRetry: _load);
-            }
-
-            final details = (state as BookingDetailsSuccess).details;
-            return _DetailsBody(details: details);
-          },
-        ),
-      ),
-      bottomNavigationBar: BlocBuilder<BookingDetailsBloc, BookingDetailsState>(
+    return BlocListener<BookingActionBloc, BookingActionState>(
+      listener: _onActionSettled,
+      child: BlocBuilder<BookingDetailsBloc, BookingDetailsState>(
         builder: (context, state) {
-          if (state is! BookingDetailsSuccess) {
-            return const SizedBox.shrink();
-          }
-          return _DetailsActions(actions: state.details.actions);
+          final details = state is BookingDetailsSuccess ? state.details : null;
+
+          return Scaffold(
+            appBar: AppAppBar(
+              title: 'Booking Details',
+              actions: [
+                // Straight off the API flags: can_reschedule is true only on a
+                // confirmed booking, can_cancel on pending and confirmed too.
+                if (details != null && details.actions.hasMenu)
+                  _DetailsMenu(
+                    actions: details.actions,
+                    onSelected: (action) => _run(action, details),
+                  ),
+              ],
+            ),
+            body: SafeArea(child: _buildBody(state)),
+            bottomNavigationBar: details == null
+                ? null
+                : BlocBuilder<BookingActionBloc, BookingActionState>(
+                    builder: (context, actionState) => _DetailsActions(
+                      actions: details.actions,
+                      // can_start stays true for another day's booking, but a
+                      // customer is only a no-show once their slot has gone.
+                      canNoShow:
+                          details.actions.canNoShow &&
+                          hasSlotPassed(details.schedule.scheduledEnd),
+                      busyAction: actionState is BookingActionInProgress
+                          ? actionState.action
+                          : null,
+                      onSelected: (action) => _run(action, details),
+                    ),
+                  ),
+          );
         },
       ),
+    );
+  }
+
+  Widget _buildBody(BookingDetailsState state) {
+    if (state is BookingDetailsInitial || state is BookingDetailsLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state is BookingDetailsFailure) {
+      return _DetailsMessage(message: state.message, onRetry: _load);
+    }
+
+    final details = (state as BookingDetailsSuccess).details;
+    return _DetailsBody(
+      details: details,
+      onAction: (action) => _run(action, details),
+    );
+  }
+}
+
+/// The Reschedule / Cancel overflow in the app bar.
+class _DetailsMenu extends StatelessWidget {
+  final BookingDetailActions actions;
+  final ValueChanged<BookingAction> onSelected;
+
+  const _DetailsMenu({required this.actions, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<BookingAction>(
+      onSelected: onSelected,
+      itemBuilder: (_) => [
+        if (actions.canReschedule)
+          const PopupMenuItem(
+            value: BookingAction.reschedule,
+            child: Text('Reschedule'),
+          ),
+        if (actions.canReschedule && actions.canCancel) const PopupMenuDivider(),
+        if (actions.canCancel)
+          const PopupMenuItem(
+            value: BookingAction.cancel,
+            child: Text('Cancel Booking'),
+          ),
+      ],
+      padding: EdgeInsets.all(1.w),
+      menuPadding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
+      color: AppColors.background,
+      surfaceTintColor: AppColors.background,
+      elevation: 4,
+      shadowColor: AppColors.borderLight,
+      position: PopupMenuPosition.under,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(2.5.w),
+      ),
+      icon: Icon(Icons.more_vert, size: 18.sp, color: AppColors.textPrimary),
     );
   }
 }
@@ -72,12 +173,17 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
 class _DetailsBody extends StatelessWidget {
   final BookingDetailModel details;
 
-  const _DetailsBody({required this.details});
+  /// Fires the reschedule-request answer, which lives in the scroll body
+  /// rather than the bottom bar.
+  final ValueChanged<BookingAction> onAction;
+
+  const _DetailsBody({required this.details, required this.onAction});
 
   @override
   Widget build(BuildContext context) {
     final cancellation = details.cancellation;
     final rejection = details.rejection;
+    final rescheduleRequest = details.rescheduleRequest;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(5.w, 1.h, 5.w, 3.h),
@@ -91,6 +197,14 @@ class _DetailsBody extends StatelessWidget {
           _AppointmentCard(details: details),
           SizedBox(height: 1.5.h),
           _PaymentCard(payment: details.payment),
+          if (rescheduleRequest != null) ...[
+            SizedBox(height: 1.5.h),
+            _RescheduleRequestCard(
+              request: rescheduleRequest,
+              actions: details.actions,
+              onAction: onAction,
+            ),
+          ],
           if (cancellation != null) ...[
             SizedBox(height: 1.5.h),
             _CancellationCard(cancellation: cancellation),
@@ -487,6 +601,131 @@ class _AmountRow extends StatelessWidget {
   }
 }
 
+/// The customer's request to move this booking - and the two buttons that
+/// answer it.
+///
+/// Deliberately its own card rather than part of the bottom bar: answering a
+/// time change is a different question from answering the booking, and the
+/// owner needs the old -> new times in front of them while they decide.
+class _RescheduleRequestCard extends StatelessWidget {
+  final BookingDetailRescheduleRequest request;
+  final BookingDetailActions actions;
+  final ValueChanged<BookingAction> onAction;
+
+  const _RescheduleRequestCard({
+    required this.request,
+    required this.actions,
+    required this.onAction,
+  });
+
+  /// 'Sep 12, 3:00 PM - 3:45 PM', or a dash when the window is missing.
+  String _window(DateTime? start, DateTime? end) {
+    if (start == null) return '—';
+    final from = formatRelativeDateTime(start);
+    return end == null ? from : '$from - ${formatTime(end)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final schedule = request.schedule;
+
+    return _DetailsCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardTitle(
+            request.isPending ? 'Time Change Requested' : 'Time Change',
+          ),
+          SizedBox(height: 0.5.h),
+          AppInfoRow(
+            icon: Icons.person_outline,
+            label: request.requestedBy.label,
+            value: _orDash(request.requestedBy.name),
+          ),
+          AppInfoRow(
+            icon: Icons.event_busy_outlined,
+            label: 'Current Time',
+            value: _window(schedule.previousStart, schedule.previousEnd),
+          ),
+          AppInfoRow(
+            icon: Icons.event_available_outlined,
+            label: 'Requested Time',
+            value: _window(schedule.proposedStart, schedule.proposedEnd),
+          ),
+          AppInfoRow(
+            icon: Icons.badge_outlined,
+            // 'Requested', never 'Assigned' - the staff pick is only a wish
+            // the shop never accepts or declines.
+            label: 'Staff Requested',
+            value: _orDash(request.staff.requestedStaffName),
+          ),
+          AppInfoRow(
+            icon: Icons.access_time_rounded,
+            label: 'Asked On',
+            value: formatDateTime(request.createdAt),
+          ),
+          if (request.isResolved) ...[
+            AppInfoRow(
+              icon: Icons.task_alt_rounded,
+              label: request.status == BookingDetailStatus.rejected
+                  ? 'Rejected On'
+                  : 'Approved On',
+              value: formatDateTime(request.resolvedAt),
+            ),
+            if (request.hasRejectionReason)
+              AppInfoRow(
+                icon: Icons.notes_rounded,
+                label: 'Reason',
+                value: _orDash(request.rejectionReason),
+              ),
+          ],
+          if (actions.hasRescheduleAnswer) ...[
+            SizedBox(height: 1.h),
+            BlocBuilder<BookingActionBloc, BookingActionState>(
+              builder: (context, state) {
+                final busy = state is BookingActionInProgress
+                    ? state.action
+                    : null;
+
+                // Refusing writes nothing to the booking, so the API can offer
+                // Reject while Approve is off - the row has to read well with
+                // one button as well as two.
+                final buttons = <Widget>[
+                  if (actions.canRejectReschedule)
+                    _OutlinedAction(
+                      label: 'Reject',
+                      isLoading: busy == BookingAction.rejectReschedule,
+                      onPressed: busy != null
+                          ? null
+                          : () => onAction(BookingAction.rejectReschedule),
+                    ),
+                  if (actions.canApproveReschedule)
+                    _FilledAction(
+                      label: 'Approve Change',
+                      isLoading: busy == BookingAction.approveReschedule,
+                      onPressed: busy != null
+                          ? null
+                          : () => onAction(BookingAction.approveReschedule),
+                    ),
+                ];
+
+                return Row(
+                  children: [
+                    for (var i = 0; i < buttons.length; i++) ...[
+                      if (i > 0) SizedBox(width: 3.w),
+                      Expanded(child: buttons[i]),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _CancellationCard extends StatelessWidget {
   final BookingDetailCancellation cancellation;
 
@@ -570,26 +809,49 @@ String _orDash(String? value) {
 }
 
 /// Bottom bar drawn from the `actions` block the API returns, rather than from
-/// the status. Handlers land in a later change.
+/// the status.
 class _DetailsActions extends StatelessWidget {
   final BookingDetailActions actions;
 
-  const _DetailsActions({required this.actions});
+  /// [BookingDetailActions.canNoShow] narrowed by the slot having passed.
+  final bool canNoShow;
+
+  /// The action currently in flight, so only its button spins.
+  final BookingAction? busyAction;
+  final ValueChanged<BookingAction> onSelected;
+
+  const _DetailsActions({
+    required this.actions,
+    required this.canNoShow,
+    required this.busyAction,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (!actions.hasAny) return const SizedBox.shrink();
 
+    Widget outlined(String label, BookingAction action) => _OutlinedAction(
+      label: label,
+      isLoading: busyAction == action,
+      onPressed: busyAction != null ? null : () => onSelected(action),
+    );
+
+    Widget filled(String label, BookingAction action) => _FilledAction(
+      label: label,
+      isLoading: busyAction == action,
+      onPressed: busyAction != null ? null : () => onSelected(action),
+    );
+
     final buttons = <Widget>[
-      if (actions.canReject) _OutlinedAction(label: 'Reject', onPressed: () {}),
-      if (actions.canNoShow)
-        _OutlinedAction(label: 'No Show', onPressed: () {}),
-      if (actions.canApprove) _FilledAction(label: 'Accept', onPressed: () {}),
-      if (actions.canStart)
-        _FilledAction(label: 'Start Service', onPressed: () {}),
-      if (actions.canComplete)
-        _FilledAction(label: 'Complete', onPressed: () {}),
+      if (actions.canReject) outlined('Reject', BookingAction.reject),
+      if (canNoShow) outlined('No Show', BookingAction.noShow),
+      if (actions.canApprove) filled('Accept', BookingAction.approve),
+      if (actions.canStart) filled('Start Service', BookingAction.start),
+      if (actions.canComplete) filled('Complete', BookingAction.complete),
     ];
+
+    if (buttons.isEmpty) return const SizedBox.shrink();
 
     return Container(
       padding: EdgeInsets.fromLTRB(5.w, 1.5.h, 5.w, 2.h),
@@ -614,41 +876,61 @@ class _DetailsActions extends StatelessWidget {
 
 class _OutlinedAction extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
-  const _OutlinedAction({required this.label, required this.onPressed});
+  const _OutlinedAction({
+    required this.label,
+    required this.onPressed,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return OutlinedButton(
-      onPressed: onPressed,
+      onPressed: isLoading ? null : onPressed,
       style: OutlinedButton.styleFrom(
         padding: EdgeInsets.symmetric(vertical: 1.8.h),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(3.w)),
         side: const BorderSide(color: AppColors.primary),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 15.sp,
-          fontWeight: FontWeight.w600,
-          color: AppColors.primary,
-        ),
-      ),
+      child: isLoading
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
+            )
+          : Text(
+              label,
+              style: TextStyle(
+                fontSize: 15.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
     );
   }
 }
 
 class _FilledAction extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
-  const _FilledAction({required this.label, required this.onPressed});
+  const _FilledAction({
+    required this.label,
+    required this.onPressed,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return AppButton(
       label: label,
+      isLoading: isLoading,
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,

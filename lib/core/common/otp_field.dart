@@ -8,11 +8,16 @@ class OtpField extends StatefulWidget {
   final ValueChanged<String> onChanged;
   final ValueChanged<String>? onCompleted;
 
+  /// Takes the keyboard as soon as the field is mounted. Used inside bottom
+  /// sheets, where the code box is the only thing to fill in.
+  final bool autofocus;
+
   const OtpField({
     super.key,
     this.length = 6,
     required this.onChanged,
     this.onCompleted,
+    this.autofocus = false,
   });
 
   @override
@@ -81,6 +86,7 @@ class _OtpFieldState extends State<OtpField> {
             child: TextField(
               controller: _controllers[index],
               focusNode: _focusNodes[index],
+              autofocus: widget.autofocus && index == 0,
               textAlign: TextAlign.center,
               keyboardType: TextInputType.number,
               maxLength: 1,

@@ -2,14 +2,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:noq_business/core/api/api_exception.dart';
 import 'package:noq_business/features/walkin/bloc/walkin_slots_event.dart';
 import 'package:noq_business/features/walkin/bloc/walkin_slots_state.dart';
-import 'package:noq_business/features/walkin/repository/walkin_repository.dart';
+import 'package:noq_business/features/walkin/data/walkin_slots_model.dart';
 
+/// Loads one local day of the slot grid. [date] is `YYYY-MM-DD` in the shop's
+/// timezone, or null for the shop's today.
+typedef SlotsFetcher = Future<WalkinSlotsModel> Function(String? date);
+
+/// Date strip and time grid behind the slot picker.
+///
+/// The fetcher is injected because two screens share this grid: a new walk-in
+/// reads it from the services the clerk ticked, a reschedule reads it from the
+/// booking being moved. The payload is identical either way.
 class WalkinSlotsBloc extends Bloc<WalkinSlotsEvent, WalkinSlotsState> {
-  final WalkinRepository _repository;
+  final SlotsFetcher _fetchSlots;
 
-  List<String> _serviceIds = const [];
-
-  WalkinSlotsBloc(this._repository) : super(const WalkinSlotsState()) {
+  WalkinSlotsBloc(this._fetchSlots) : super(const WalkinSlotsState()) {
     on<WalkinSlotsRequested>(_onRequested);
     on<WalkinSlotsRetried>(_onRetried);
     on<WalkinSlotsDateSelected>(_onDateSelected);
@@ -20,10 +27,7 @@ class WalkinSlotsBloc extends Bloc<WalkinSlotsEvent, WalkinSlotsState> {
   Future<void> _onRequested(
     WalkinSlotsRequested event,
     Emitter<WalkinSlotsState> emit,
-  ) async {
-    _serviceIds = event.serviceIds;
-    await _load(emit);
-  }
+  ) => _load(emit);
 
   Future<void> _onRetried(
     WalkinSlotsRetried event,
@@ -40,7 +44,7 @@ class WalkinSlotsBloc extends Bloc<WalkinSlotsEvent, WalkinSlotsState> {
     );
 
     try {
-      final model = await _repository.getSlots(serviceIds: _serviceIds);
+      final model = await _fetchSlots(null);
       emit(
         state.copyWith(
           status: WalkinSlotsStatus.success,
@@ -90,10 +94,7 @@ class WalkinSlotsBloc extends Bloc<WalkinSlotsEvent, WalkinSlotsState> {
     );
 
     try {
-      final model = await _repository.getSlots(
-        serviceIds: _serviceIds,
-        date: date,
-      );
+      final model = await _fetchSlots(date);
       // The clerk may have tapped another chip while this was in flight.
       if (state.selectedDate != date) return;
       emit(
