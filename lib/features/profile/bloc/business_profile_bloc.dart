@@ -17,11 +17,7 @@ class BusinessProfileBloc
     BusinessProfileRequested event,
     Emitter<BusinessProfileState> emit,
   ) async {
-    // On a pull to refresh the RefreshIndicator already shows a spinner, so
-    // keep the loaded profile on screen instead of flashing back to one.
-    if (!(event.refresh && state is BusinessProfileSuccess)) {
-      emit(const BusinessProfileLoading());
-    }
+    emit(const BusinessProfileLoading());
 
     try {
       final overview = await _repository.getBusinessOverview();

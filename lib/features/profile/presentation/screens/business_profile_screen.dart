@@ -8,6 +8,7 @@ import 'package:noq_business/features/profile/bloc/business_profile_bloc.dart';
 import 'package:noq_business/features/profile/bloc/business_profile_event.dart';
 import 'package:noq_business/features/profile/bloc/business_profile_state.dart';
 import 'package:noq_business/features/profile/data/business_overview_model.dart';
+import 'package:noq_business/features/profile/presentation/widgets/business_profile_loading_widget.dart';
 import 'package:noq_business/features/profile/presentation/widgets/overview_gallery_card.dart';
 import 'package:noq_business/features/profile/presentation/widgets/overview_manage_staff_card.dart';
 import 'package:noq_business/features/profile/presentation/widgets/overview_services_card.dart';
@@ -30,9 +31,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
   }
 
   void _load() {
-    context.read<BusinessProfileBloc>().add(
-      const BusinessProfileRequested(refresh: true),
-    );
+    context.read<BusinessProfileBloc>().add(const BusinessProfileRequested());
   }
 
   @override
@@ -58,7 +57,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> {
 
   Widget _body(BusinessProfileState state) {
     if (state is BusinessProfileInitial || state is BusinessProfileLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const BusinessProfileLoadingWidget();
     }
 
     if (state is BusinessProfileFailure) {
@@ -112,8 +111,6 @@ class _ProfileContent extends StatelessWidget {
               services: overview.services,
               onManageTap: () => context.push('/services'),
               onAddTap: () => context.push('/add-service'),
-              // The overview carries the slim OverviewService; the edit form
-              // needs a full ServiceModel, so send the shop to the list.
               onServiceTap: (_) => context.push('/services'),
             ),
             SizedBox(height: 2.h),
