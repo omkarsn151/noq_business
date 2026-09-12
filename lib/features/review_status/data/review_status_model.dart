@@ -70,17 +70,39 @@ class ReviewStatusSummaryModel {
   }
 }
 
+class ReviewStatusActionsModel {
+  final bool canCancelReview;
+  final bool canEdit;
+  final bool canResubmit;
+
+  const ReviewStatusActionsModel({
+    this.canCancelReview = false,
+    this.canEdit = false,
+    this.canResubmit = false,
+  });
+
+  factory ReviewStatusActionsModel.fromJson(Map<String, dynamic> json) {
+    return ReviewStatusActionsModel(
+      canCancelReview: json['can_cancel_review'] as bool? ?? false,
+      canEdit: json['can_edit'] as bool? ?? false,
+      canResubmit: json['can_resubmit'] as bool? ?? false,
+    );
+  }
+}
+
 class ReviewStatusModel {
   final BusinessStatus? reviewStatus;
   final ReviewStatusHeaderModel header;
   final ReviewStatusSummaryModel summary;
   final List<ReviewStatusTimelineItemModel> timeline;
+  final ReviewStatusActionsModel actions;
 
   const ReviewStatusModel({
     required this.reviewStatus,
     required this.header,
     required this.summary,
     required this.timeline,
+    required this.actions,
   });
 
   factory ReviewStatusModel.fromJson(Map<String, dynamic> json) {
@@ -93,10 +115,17 @@ class ReviewStatusModel {
         json['summary'] as Map<String, dynamic>,
       ),
       timeline: (json['timeline'] as List)
-          .map((e) => ReviewStatusTimelineItemModel.fromJson(
-                e as Map<String, dynamic>,
-              ))
+          .map(
+            (e) => ReviewStatusTimelineItemModel.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
           .toList(),
+      actions: json['actions'] != null
+          ? ReviewStatusActionsModel.fromJson(
+              json['actions'] as Map<String, dynamic>,
+            )
+          : const ReviewStatusActionsModel(),
     );
   }
 }

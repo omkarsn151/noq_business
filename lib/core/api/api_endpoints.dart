@@ -21,8 +21,9 @@ class ApiEndpoints {
 
   static const String createBusinesses = "v1/business/profile";
 
-  static const String submitBusinessForReview =
-      "v1/business/submit-for-review";
+  static const String submitBusinessForReview = "v1/business/submit-for-review";
+
+  static const String cancelReview = "v1/business/cancel-review";
 
   //====================Categories====================
 
@@ -50,7 +51,6 @@ class ApiEndpoints {
 
   static const String editStaff = "v1/business/staff";
 
-
   static const String staffDetails = "v1/business/staff";
 
   //====================Uplaod====================
@@ -66,7 +66,6 @@ class ApiEndpoints {
   //====================Business====================
 
   static const String getReviewStatus = "v1/business/review-status";
-
 
   //====================Promotions====================
   static const String getPromotions = "v1/business/promos";
@@ -111,5 +110,4 @@ class ApiEndpoints {
 
   //====================Insights====================
   static const String getInsights = "v1/business/insights";
-
 }
