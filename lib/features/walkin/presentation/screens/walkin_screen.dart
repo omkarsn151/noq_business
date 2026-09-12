@@ -18,6 +18,7 @@ import 'package:noq_business/features/walkin/bloc/todays_bookings_state.dart';
 import 'package:noq_business/features/walkin/data/walkin_slot_selection.dart';
 import 'package:noq_business/features/walkin/presentation/widgets/slot_selection_bottom_sheet.dart';
 import 'package:noq_business/features/walkin/presentation/widgets/todays_bookings_card.dart';
+import 'package:noq_business/features/walkin/presentation/widgets/todays_bookings_loading_widget.dart';
 
 class WalkinScreen extends StatefulWidget {
   const WalkinScreen({super.key});
@@ -218,13 +219,11 @@ class _WalkinScreenState extends State<WalkinScreen> {
                   SizedBox(height: 4.h),
                   BlocBuilder<TodaysBookingsBloc, TodaysBookingsState>(
                     builder: (context, state) {
-                      if (state.status == TodaysBookingsStatus.loading &&
-                          state.model.bookings.isEmpty) {
-                        return const Center(child: CircularProgressIndicator());
+                      if (state.status == TodaysBookingsStatus.loading) {
+                        return const TodaysBookingsLoadingWidget();
                       }
 
-                      if (state.status == TodaysBookingsStatus.failure &&
-                          state.model.bookings.isEmpty) {
+                      if (state.status == TodaysBookingsStatus.failure) {
                         return Center(
                           child: Text(
                             state.message,
