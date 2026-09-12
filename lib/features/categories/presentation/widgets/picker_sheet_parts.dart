@@ -20,6 +20,8 @@ class PickerSheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -43,16 +45,15 @@ class PickerSheetHeader extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: textTheme.titleMedium?.copyWith(
                       fontSize: 17.sp,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
                     ),
                   ),
                   SizedBox(height: 0.4.h),
                   Text(
                     subtitle,
-                    style: TextStyle(
+                    style: textTheme.bodySmall?.copyWith(
                       fontSize: 13.sp,
                       color: AppColors.textSecondary,
                     ),
@@ -105,6 +106,8 @@ class PickerSheetMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Center(
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 6.w),
@@ -120,21 +123,13 @@ class PickerSheetMessage extends StatelessWidget {
               child: Icon(icon, size: 28.sp, color: iconColor),
             ),
             SizedBox(height: 1.8.h),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            Text(title, textAlign: TextAlign.center, style: textTheme.labelLarge),
             if (message != null && message!.isNotEmpty) ...[
               SizedBox(height: 0.6.h),
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: textTheme.bodySmall?.copyWith(
                   fontSize: 13.sp,
                   color: AppColors.textSecondary,
                 ),
@@ -235,7 +230,8 @@ class PickerOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(3.08.w);
+    final textTheme = Theme.of(context).textTheme;
+    final radius = BorderRadius.circular(4.w);
     final url = imageUrl;
     final hasImage = url != null && url.isNotEmpty;
 
@@ -288,8 +284,8 @@ class PickerOptionTile extends StatelessWidget {
                       AppColors.background.withValues(alpha: 0.50),
                       AppColors.background.withValues(alpha: 0.05),
                       AppColors.background.withValues(alpha: 0.00),
+                      AppColors.background.withValues(alpha: 0.00),
                     ],
-                    // stops: const [0.0, 0.45, 1.0],
                   ),
                 ),
               ),
@@ -303,13 +299,9 @@ class PickerOptionTile extends StatelessWidget {
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15.sp,
+                      style: textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         height: 1.2,
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textPrimary,
                       ),
                     ),
                     if (subtitle != null && subtitle!.isNotEmpty) ...[
@@ -318,8 +310,8 @@ class PickerOptionTile extends StatelessWidget {
                         subtitle!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12.sp,
+                        style: textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
                           color: AppColors.textSecondary,
                         ),
                       ),
