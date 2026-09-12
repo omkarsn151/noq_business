@@ -145,27 +145,54 @@ class _DetailsMenu extends StatelessWidget {
       onSelected: onSelected,
       itemBuilder: (_) => [
         if (actions.canReschedule)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: BookingAction.reschedule,
-            child: Text('Reschedule'),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_month_outlined,
+                  size: 16.sp,
+                  color: AppColors.textPrimary,
+                ),
+                SizedBox(width: 2.w),
+                Text(
+                  'Reschedule Booking',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           ),
-        if (actions.canReschedule && actions.canCancel) const PopupMenuDivider(),
+        if (actions.canReschedule && actions.canCancel)
+          const PopupMenuDivider(height: 1, color: AppColors.border),
         if (actions.canCancel)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: BookingAction.cancel,
-            child: Text('Cancel Booking'),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.cancel_outlined,
+                  size: 16.sp,
+                  color: AppColors.error,
+                ),
+                SizedBox(width: 2.w),
+                Text(
+                  'Cancel Booking',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.error),
+                ),
+              ],
+            ),
           ),
       ],
-      padding: EdgeInsets.all(1.w),
+      padding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.sp)),
       menuPadding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
       color: AppColors.background,
       surfaceTintColor: AppColors.background,
       elevation: 4,
       shadowColor: AppColors.borderLight,
       position: PopupMenuPosition.under,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(2.5.w),
-      ),
       icon: Icon(Icons.more_vert, size: 18.sp, color: AppColors.textPrimary),
     );
   }
@@ -479,7 +506,10 @@ class _AppointmentCard extends StatelessWidget {
             value: services.isEmpty
                 ? '—'
                 : services
-                      .map((service) => '${service.name}  •  ${service.priceLabel}')
+                      .map(
+                        (service) =>
+                            '${service.name}  •  ${service.priceLabel}',
+                      )
                       .join('\n'),
           ),
           AppInfoRow(

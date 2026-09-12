@@ -163,7 +163,7 @@ class BookingCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (_hasMenu) ...[SizedBox(width: 1.w), _buildMenu()],
+              if (_hasMenu) ...[SizedBox(width: 1.w), _buildMenu(context)],
             ],
           ),
           SizedBox(height: 1.5.h),
@@ -206,33 +206,59 @@ class BookingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMenu() {
+  Widget _buildMenu(BuildContext context) {
     return PopupMenuButton<BookingCardAction>(
       enabled: !isBusy,
       onSelected: _fire,
       itemBuilder: (_) => [
         if (_canReschedule)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: BookingCardAction.reschedule,
-            child: Text('Reschedule'),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_month_outlined,
+                  size: 16.sp,
+                  color: AppColors.textPrimary,
+                ),
+                SizedBox(width: 2.w),
+                Text(
+                  'Reschedule Booking',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           ),
-        if (_canReschedule && _canCancel) const PopupMenuDivider(),
+        if (_canReschedule && _canCancel) const PopupMenuDivider(height: 1, color: AppColors.border),
         if (_canCancel)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: BookingCardAction.cancel,
-            child: Text('Cancel'),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.cancel_outlined,
+                  size: 16.sp,
+                  color: AppColors.error,
+                ),
+                SizedBox(width: 2.w),
+                Text(
+                  'Cancel Booking',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.error),
+                ),
+              ],
+            ),
           ),
       ],
-      padding: EdgeInsets.all(1.w),
+      padding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.sp)),
       menuPadding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
       color: AppColors.background,
       surfaceTintColor: AppColors.background,
       elevation: 4,
       shadowColor: AppColors.borderLight,
       position: PopupMenuPosition.under,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(2.5.w),
-      ),
       icon: Icon(Icons.more_vert, size: 17.sp, color: AppColors.textPrimary),
     );
   }
