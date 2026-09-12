@@ -5,6 +5,7 @@ import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/common/app_appbar.dart';
 import 'package:noq_business/core/common/app_pill_tab_bar.dart';
 import 'package:noq_business/core/common/app_snackbar.dart';
+import 'package:noq_business/core/utils/app_assets.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/core/utils/date_formats.dart';
 import 'package:noq_business/features/bookings/bloc/booking_action_bloc.dart';
@@ -170,6 +171,24 @@ class _BookingsList extends StatelessWidget {
     );
   }
 
+  /// Empty-state illustration for a tab with no bookings.
+  String _emptyImageFor(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.pending:
+        return AppAssets.noPendingBookings;
+      case BookingStatus.approved:
+        return AppAssets.noApprovedBookings;
+      case BookingStatus.completed:
+        return AppAssets.noCompletedBookings;
+      case BookingStatus.rejected:
+        return AppAssets.noRejectedBookings;
+      case BookingStatus.cancelled:
+        return AppAssets.noCancelledBookings;
+      case BookingStatus.dismissed:
+        return AppAssets.noDissmissedBookings;
+    }
+  }
+
   void _loadFirstPage(BuildContext context) {
     context.read<BookingsBloc>().add(
       BookingsRequested(status: status, refresh: true),
@@ -218,6 +237,7 @@ class _BookingsList extends StatelessWidget {
 
     if (tab.bookings.isEmpty) {
       return _BookingsMessage(
+        image: _emptyImageFor(status),
         message: 'No ${status.emptyLabel} bookings',
         onRetry: () => _loadFirstPage(context),
       );
@@ -274,10 +294,11 @@ class _BookingsList extends StatelessWidget {
 }
 
 class _BookingsMessage extends StatelessWidget {
+  final String? image;
   final String message;
   final VoidCallback onRetry;
 
-  const _BookingsMessage({required this.message, required this.onRetry});
+  const _BookingsMessage({this.image, required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +308,11 @@ class _BookingsMessage extends StatelessWidget {
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          SizedBox(height: 20.h),
+          SizedBox(height: 8.h),
+          if (image != null) ...[
+            Center(child: Image.asset(image!, height: 30.h)),
+            SizedBox(height: 2.h),
+          ],
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 8.w),
             child: Text(

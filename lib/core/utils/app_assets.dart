@@ -19,4 +19,14 @@ class AppAssets {
 
   static const String navSettings = '$_bottomNavIcons/settings.svg';
   static const String navSettingsFilled = '$_bottomNavIcons/settings_filled.svg';
+
+  //Booking Icons
+  static const String _bookingIcons = 'assets/images/booking';
+
+  static const String noPendingBookings = '$_bookingIcons/no_pending_booking.png';
+  static const String noApprovedBookings = '$_bookingIcons/no_approved_booking.png';
+  static const String noCompletedBookings = '$_bookingIcons/no_approved_booking.png';
+  static const String noRejectedBookings = '$_bookingIcons/no_cancelled_booking.png';
+  static const String noCancelledBookings = '$_bookingIcons/no_cancelled_booking.png';
+  static const String noDissmissedBookings = '$_bookingIcons/no_pending_booking.png';
 }
