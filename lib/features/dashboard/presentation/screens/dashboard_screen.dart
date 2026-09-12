@@ -11,6 +11,7 @@ import 'package:noq_business/features/dashboard/bloc/dashboard_state.dart';
 import 'package:noq_business/features/dashboard/data/dashboard_model.dart';
 import 'package:noq_business/features/dashboard/presentation/widgets/dashboard_booking_tile.dart';
 import 'package:noq_business/features/dashboard/presentation/widgets/circle_icon_button.dart';
+import 'package:noq_business/features/dashboard/presentation/widgets/dashboard_loading_widget.dart';
 import 'package:noq_business/features/dashboard/presentation/widgets/dashboard_section_header.dart';
 import 'package:noq_business/features/dashboard/presentation/widgets/revenue_card.dart';
 import 'package:noq_business/features/dashboard/presentation/widgets/stat_strip_card.dart';
@@ -40,7 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _load() {
-    context.read<DashboardBloc>().add(const DashboardRequested(refresh: true));
+    context.read<DashboardBloc>().add(const DashboardRequested());
   }
 
   @override
@@ -78,7 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _body(DashboardState state) {
     if (state is DashboardInitial || state is DashboardLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const DashboardLoadingWidget();
     }
 
     if (state is DashboardFailure) {

@@ -15,11 +15,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     DashboardRequested event,
     Emitter<DashboardState> emit,
   ) async {
-    // On a pull to refresh the RefreshIndicator already shows a spinner, so
-    // keep the loaded dashboard on screen instead of flashing back to one.
-    if (!(event.refresh && state is DashboardSuccess)) {
-      emit(const DashboardLoading());
-    }
+    emit(const DashboardLoading());
 
     try {
       final dashboard = await _repository.getDashboard();
