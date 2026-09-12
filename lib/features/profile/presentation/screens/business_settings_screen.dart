@@ -16,6 +16,7 @@ import 'package:noq_business/features/profile/bloc/business_settings_bloc.dart';
 import 'package:noq_business/features/profile/bloc/business_settings_event.dart';
 import 'package:noq_business/features/profile/bloc/business_settings_state.dart';
 import 'package:noq_business/features/profile/data/business_settings_model.dart';
+import 'package:noq_business/features/profile/presentation/widgets/business_settings_loading_widget.dart';
 
 class BusinessSettingsScreen extends StatefulWidget {
   const BusinessSettingsScreen({super.key});
@@ -268,9 +269,7 @@ class _BusinessSettingsScreenState extends State<BusinessSettingsScreen> {
         );
       }
       if (state.status != BusinessSettingsStatus.success) {
-        return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        );
+        return const BusinessSettingsLoadingWidget();
       }
     }
 
