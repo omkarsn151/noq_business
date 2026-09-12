@@ -8,6 +8,7 @@ import 'package:noq_business/features/gallery/bloc/gallery_event.dart';
 import 'package:noq_business/features/gallery/bloc/gallery_state.dart';
 import 'package:noq_business/features/gallery/data/gallery_source.dart';
 import 'package:noq_business/features/gallery/presentation/screens/gallery_viewer_screen.dart';
+import 'package:noq_business/features/gallery/presentation/widgets/gallery_loading_widget.dart';
 import 'package:noq_business/features/gallery/presentation/widgets/gallery_tile.dart';
 
 /// The picture grid of one tab, including its loading, empty and error states.
@@ -55,7 +56,7 @@ class GalleryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tab.status == GalleryTabStatus.initial ||
         tab.status == GalleryTabStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const GalleryLoadingWidget();
     }
 
     if (tab.status == GalleryTabStatus.failure) {
