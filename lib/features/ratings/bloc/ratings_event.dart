@@ -7,14 +7,9 @@ abstract class RatingsEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Loads the first page. A cached successful load is reused unless [refresh].
+/// Loads the first page.
 class RatingsRequested extends RatingsEvent {
-  final bool refresh;
-
-  const RatingsRequested({this.refresh = false});
-
-  @override
-  List<Object?> get props => [refresh];
+  const RatingsRequested();
 }
 
 /// Clears the list and reloads the first page - the pull to refresh gesture.

@@ -9,13 +9,11 @@ import 'package:noq_business/features/profile/data/business_overview_model.dart'
 import 'package:noq_business/features/ratings/bloc/ratings_bloc.dart';
 import 'package:noq_business/features/ratings/bloc/ratings_event.dart';
 import 'package:noq_business/features/ratings/bloc/ratings_state.dart';
+import 'package:noq_business/features/ratings/presentation/widgets/ratings_loading_widget.dart';
 import 'package:noq_business/features/ratings/presentation/widgets/ratings_summary_header.dart';
 import 'package:noq_business/features/ratings/presentation/widgets/review_card.dart';
 
 class RatingsAndReviewsScreen extends StatefulWidget {
-  /// The score tile from the Business Profile overview, passed through the route
-  /// so the header can render before the list request returns. Null when the
-  /// screen is opened directly.
   final OverviewRating? summary;
 
   const RatingsAndReviewsScreen({super.key, this.summary});
@@ -29,12 +27,11 @@ class _RatingsAndReviewsScreenState extends State<RatingsAndReviewsScreen> {
   @override
   void initState() {
     super.initState();
-    // A fresh page one on every entry - View All must always re-fetch.
     _reload();
   }
 
   void _reload() {
-    context.read<RatingsBloc>().add(const RatingsRequested(refresh: true));
+    context.read<RatingsBloc>().add(const RatingsRequested());
   }
 
   bool _onScroll(ScrollNotification notification) {
@@ -74,7 +71,7 @@ class _RatingsAndReviewsScreenState extends State<RatingsAndReviewsScreen> {
   Widget _body(RatingsState state) {
     if (state.status == RatingsStatus.initial ||
         state.status == RatingsStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return RatingsLoadingWidget(showSummary: widget.summary != null);
     }
 
     if (state.status == RatingsStatus.failure) {

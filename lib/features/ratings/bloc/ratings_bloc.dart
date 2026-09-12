@@ -19,16 +19,13 @@ class RatingsBloc extends Bloc<RatingsEvent, RatingsState> {
     Emitter<RatingsState> emit,
   ) async {
     emit(const RatingsState());
-    add(const RatingsRequested(refresh: true));
+    add(const RatingsRequested());
   }
 
   Future<void> _onRequested(
     RatingsRequested event,
     Emitter<RatingsState> emit,
   ) async {
-    // A finished load is kept, so coming back to the screen is instant.
-    if (!event.refresh && state.status == RatingsStatus.success) return;
-
     emit(state.copyWith(status: RatingsStatus.loading, message: ''));
 
     try {
