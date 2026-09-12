@@ -21,6 +21,7 @@ class BookingStatusChip extends StatelessWidget {
       case BookingDetailStatus.noShow:
         return AppColors.error;
       case BookingDetailStatus.cancelled:
+      case BookingDetailStatus.dismissed:
         return AppColors.textSecondary;
     }
   }
@@ -41,6 +42,8 @@ class BookingStatusChip extends StatelessWidget {
         return Icons.person_off_outlined;
       case BookingDetailStatus.cancelled:
         return Icons.block;
+      case BookingDetailStatus.dismissed:
+        return Icons.timer_off_outlined;
     }
   }
 

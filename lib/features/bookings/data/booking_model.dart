@@ -1,4 +1,4 @@
-import 'package:noq_business/features/bookings/data/booking_status.dart';
+import 'package:noq_business/features/bookings/data/booking_detail_status.dart';
 
 /// A service attached to a booking.
 class BookingService {
@@ -27,7 +27,12 @@ class BookingModel {
   /// customer asked for lives in [requestedStart] / [requestedEnd].
   final DateTime? scheduledStart;
   final DateTime? scheduledEnd;
-  final BookingStatus? status;
+
+  /// The row's own life stage. Note this is the item spelling the API uses
+  /// (`confirmed`, `in_progress`, ...), which is wider than the four list
+  /// tabs - the card needs it to tell a confirmed booking from one already in
+  /// progress.
+  final BookingDetailStatus status;
   final String bookingType;
 
   /// True when this row is a customer reschedule request rather than a plain
@@ -67,7 +72,7 @@ class BookingModel {
         json['scheduled_start']?.toString() ?? '',
       ),
       scheduledEnd: DateTime.tryParse(json['scheduled_end']?.toString() ?? ''),
-      status: BookingStatus.fromString(json['status']?.toString()),
+      status: BookingDetailStatus.fromString(json['status']?.toString()),
       bookingType: json['booking_type']?.toString() ?? '',
       reference: json['reference']?.toString() ?? '',
       isRescheduleRequest: json['is_reschedule_request'] == true,

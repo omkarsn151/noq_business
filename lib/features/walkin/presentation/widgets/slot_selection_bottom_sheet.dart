@@ -4,6 +4,7 @@ import 'package:sizer/sizer.dart';
 import 'package:noq_business/core/common/app_button.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/core/utils/date_formats.dart';
+import 'package:noq_business/features/bookings/repository/bookings_repository.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/walkin/bloc/walkin_slots_bloc.dart';
 import 'package:noq_business/features/walkin/bloc/walkin_slots_event.dart';
@@ -13,16 +14,53 @@ import 'package:noq_business/features/walkin/data/walkin_slot_selection.dart';
 import 'package:noq_business/features/walkin/data/walkin_slots_model.dart';
 import 'package:noq_business/features/walkin/repository/walkin_repository.dart';
 
-/// Date + time picker for a walk-in, returning the highlighted run of chips.
+/// Date + time picker, returning the highlighted run of chips.
+///
+/// Shared by two flows that read the same slot payload: picking a slot for a
+/// new walk-in, and moving an existing booking to a new time.
 class SlotSelectionBottomSheet {
   SlotSelectionBottomSheet._();
 
+  /// Slots for a new walk-in covering [services].
   static Future<WalkinSlotSelection?> show(
     BuildContext context, {
     required List<ServiceModel> services,
   }) {
     final serviceIds = services.map((service) => service.id).toList();
+    final repository = WalkinRepository();
 
+    return _open(
+      context,
+      fetchSlots: (date) =>
+          repository.getSlots(serviceIds: serviceIds, date: date),
+      title: 'Select Slot',
+      confirmLabel: 'Confirm Slot',
+    );
+  }
+
+  /// Slots this booking can be moved to. The services and duration come from
+  /// the booking itself, so only its id is needed.
+  static Future<WalkinSlotSelection?> showForReschedule(
+    BuildContext context, {
+    required String bookingId,
+  }) {
+    final repository = BookingsRepository();
+
+    return _open(
+      context,
+      fetchSlots: (date) =>
+          repository.getRescheduleSlots(bookingId, date: date),
+      title: 'Reschedule Booking',
+      confirmLabel: 'Confirm New Slot',
+    );
+  }
+
+  static Future<WalkinSlotSelection?> _open(
+    BuildContext context, {
+    required SlotsFetcher fetchSlots,
+    required String title,
+    required String confirmLabel,
+  }) {
     return showModalBottomSheet<WalkinSlotSelection>(
       context: context,
       isScrollControlled: true,
@@ -32,16 +70,19 @@ class SlotSelectionBottomSheet {
       // A fresh bloc per sheet: the listing is a snapshot with no hold, so it
       // must not be reused across openings or across service changes.
       builder: (_) => BlocProvider<WalkinSlotsBloc>(
-        create: (_) => WalkinSlotsBloc(WalkinRepository())
-          ..add(WalkinSlotsRequested(serviceIds)),
-        child: const _SlotSelectionBody(),
+        create: (_) =>
+            WalkinSlotsBloc(fetchSlots)..add(const WalkinSlotsRequested()),
+        child: _SlotSelectionBody(title: title, confirmLabel: confirmLabel),
       ),
     );
   }
 }
 
 class _SlotSelectionBody extends StatelessWidget {
-  const _SlotSelectionBody();
+  final String title;
+  final String confirmLabel;
+
+  const _SlotSelectionBody({required this.title, required this.confirmLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -67,13 +108,13 @@ class _SlotSelectionBody extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 1.9.h),
-                Text('Select Slot', style: textTheme.titleMedium),
+                Text(title, style: textTheme.titleMedium),
                 SizedBox(height: 1.42.h),
                 Expanded(child: _SheetContent(state: state)),
                 if (state.status == WalkinSlotsStatus.success) ...[
                   Divider(height: 1, color: AppColors.borderLight),
                   SizedBox(height: 1.42.h),
-                  _SlotFooter(state: state),
+                  _SlotFooter(state: state, confirmLabel: confirmLabel),
                 ],
               ],
             );
@@ -397,8 +438,9 @@ class _TimeGrid extends StatelessWidget {
 
 class _SlotFooter extends StatelessWidget {
   final WalkinSlotsState state;
+  final String confirmLabel;
 
-  const _SlotFooter({required this.state});
+  const _SlotFooter({required this.state, required this.confirmLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -432,7 +474,7 @@ class _SlotFooter extends StatelessWidget {
           width: 45.w,
           height: 5.h,
           child: AppButton(
-            label: 'Confirm Slot',
+            label: confirmLabel,
             onPressed: hasFullRun
                 ? () => Navigator.pop(
                     context,
