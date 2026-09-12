@@ -10,6 +10,7 @@ import 'package:noq_business/features/staff/bloc/staff_details_bloc.dart';
 import 'package:noq_business/features/staff/bloc/staff_details_event.dart';
 import 'package:noq_business/features/staff/bloc/staff_details_state.dart';
 import 'package:noq_business/features/staff/data/staff_profile_model.dart';
+import 'package:noq_business/features/staff/presentation/widgets/staff_details_loading_widget.dart';
 
 /// Shared card look - matches [StaffListCard] and the dashboard cards.
 BoxDecoration _cardDecoration() {
@@ -44,6 +45,14 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> {
     StaffDetailsRequested(staffId: widget.staffId),
   );
 
+  /// Null only on a failed first load - a failed toggle keeps the profile
+  /// around so the switch can snap back instead of losing the whole page.
+  StaffProfileModel? _profileOf(StaffDetailsState state) {
+    if (state is StaffDetailsSuccess) return state.profile;
+    if (state is StaffDetailsFailure) return state.profile;
+    return null;
+  }
+
   /// The edit screen writes through [AddStaffBloc] and refreshes the staff
   /// list itself, so this only has to re-read the profile on the way back.
   Future<void> _openEdit(StaffProfileStaff staff) async {
@@ -57,13 +66,12 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> {
       listener: (context, state) {
         // A failure with the profile still loaded can only be the Active
         // toggle - the switch has already snapped back, so just say why.
-        if (state.status == StaffDetailsStatus.failure &&
-            state.profile != null) {
+        if (state is StaffDetailsFailure && state.profile != null) {
           AppSnackbar.error(context, state.message);
         }
       },
       builder: (context, state) {
-        final profile = state.profile;
+        final profile = _profileOf(state);
 
         return Scaffold(
           appBar: AppAppBar(
@@ -91,22 +99,24 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> {
   }
 
   Widget _body(StaffDetailsState state) {
-    final profile = state.profile;
-
-    // Keep whatever is already on screen during a refresh or a failed toggle.
-    if (profile == null) {
-      if (state.status == StaffDetailsStatus.failure) {
-        return _StaffDetailsMessage(
-          icon: Icons.cloud_off_outlined,
-          title: 'Could not load profile',
-          hint: state.message,
-          actionLabel: 'Retry',
-          onAction: _reload,
-          onRefresh: _reload,
-        );
-      }
-      return const Center(child: CircularProgressIndicator());
+    if (state is StaffDetailsInitial || state is StaffDetailsLoading) {
+      return const StaffDetailsLoadingWidget();
     }
+
+    final profile = _profileOf(state);
+    if (profile == null) {
+      return _StaffDetailsMessage(
+        icon: Icons.cloud_off_outlined,
+        title: 'Could not load profile',
+        hint: (state as StaffDetailsFailure).message,
+        actionLabel: 'Retry',
+        onAction: _reload,
+        onRefresh: _reload,
+      );
+    }
+
+    final isTogglingActive =
+        state is StaffDetailsSuccess && state.isTogglingActive;
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -119,7 +129,7 @@ class _StaffDetailsScreenState extends State<StaffDetailsScreen> {
         children: [
           _ProfileHeader(
             staff: profile.staff,
-            isBusy: state.isTogglingActive,
+            isBusy: isTogglingActive,
             onActiveChanged: (value) =>
                 context.read<StaffDetailsBloc>().add(
                   StaffActiveToggled(staffId: widget.staffId, isActive: value),

@@ -10,6 +10,7 @@ import 'package:noq_business/features/staff/bloc/staff_event.dart';
 import 'package:noq_business/features/staff/bloc/staff_state.dart';
 import 'package:noq_business/features/staff/data/staff_model.dart';
 import 'package:noq_business/features/staff/presentation/widgets/staff_list_card.dart';
+import 'package:noq_business/features/staff/presentation/widgets/staff_loading_widget.dart';
 
 class StaffListScreen extends StatefulWidget {
   const StaffListScreen({super.key});
@@ -95,7 +96,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
 
   Widget _body(StaffState state) {
     if (state is StaffInitial || state is StaffLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const StaffLoadingWidget();
     }
 
     if (state is StaffFailure) {

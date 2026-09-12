@@ -2,12 +2,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:noq_business/core/api/api_exception.dart';
 import 'package:noq_business/features/staff/bloc/staff_details_event.dart';
 import 'package:noq_business/features/staff/bloc/staff_details_state.dart';
+import 'package:noq_business/features/staff/data/staff_profile_model.dart';
 import 'package:noq_business/features/staff/repository/staff_repository.dart';
 
 class StaffDetailsBloc extends Bloc<StaffDetailsEvent, StaffDetailsState> {
   final StaffRepository _repository;
 
-  StaffDetailsBloc(this._repository) : super(const StaffDetailsState()) {
+  StaffDetailsBloc(this._repository) : super(const StaffDetailsInitial()) {
     on<StaffDetailsRequested>(_onStaffDetailsRequested);
     on<StaffActiveToggled>(_onStaffActiveToggled);
   }
@@ -16,19 +17,14 @@ class StaffDetailsBloc extends Bloc<StaffDetailsEvent, StaffDetailsState> {
     StaffDetailsRequested event,
     Emitter<StaffDetailsState> emit,
   ) async {
-    emit(state.copyWith(status: StaffDetailsStatus.loading, message: ''));
+    emit(const StaffDetailsLoading());
     try {
       final profile = await _repository.getStaffDetails(event.staffId);
-      emit(
-        state.copyWith(status: StaffDetailsStatus.success, profile: profile),
-      );
+      emit(StaffDetailsSuccess(profile: profile));
+    } on ApiException catch (e) {
+      emit(StaffDetailsFailure(message: e.message));
     } catch (e) {
-      emit(
-        state.copyWith(
-          status: StaffDetailsStatus.failure,
-          message: _messageOf(e),
-        ),
-      );
+      emit(StaffDetailsFailure(message: e.toString()));
     }
   }
 
@@ -36,36 +32,30 @@ class StaffDetailsBloc extends Bloc<StaffDetailsEvent, StaffDetailsState> {
     StaffActiveToggled event,
     Emitter<StaffDetailsState> emit,
   ) async {
-    final profile = state.profile;
+    final profile = _profileOf(state);
     if (profile == null) return;
 
     // Move the switch straight away - the PATCH is a single boolean and the
     // owner should not watch a spinner for it.
-    emit(
-      state.copyWith(
-        status: StaffDetailsStatus.success,
-        profile: profile.withActive(event.isActive),
-        isTogglingActive: true,
-        message: '',
-      ),
-    );
+    final optimistic = profile.withActive(event.isActive);
+    emit(StaffDetailsSuccess(profile: optimistic, isTogglingActive: true));
 
     try {
       await _repository.setStaffActive(
         id: event.staffId,
         isActive: event.isActive,
       );
-      emit(state.copyWith(isTogglingActive: false));
+      emit(StaffDetailsSuccess(profile: optimistic));
     } catch (e) {
       // Put the switch back where it was and let the screen surface why.
-      emit(
-        StaffDetailsState(
-          status: StaffDetailsStatus.failure,
-          profile: profile,
-          message: _messageOf(e),
-        ),
-      );
+      emit(StaffDetailsFailure(message: _messageOf(e), profile: profile));
     }
+  }
+
+  StaffProfileModel? _profileOf(StaffDetailsState state) {
+    if (state is StaffDetailsSuccess) return state.profile;
+    if (state is StaffDetailsFailure) return state.profile;
+    return null;
   }
 
   String _messageOf(Object error) =>

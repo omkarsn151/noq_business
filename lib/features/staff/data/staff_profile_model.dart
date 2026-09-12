@@ -191,52 +191,14 @@ class StaffTodayBooking {
   String get serviceLabel => services.join(' + ');
 }
 
-/// The three Today Status tiles.
-///
-/// These count visits that *asked for* this person - a visit booked as
-/// "Anyone" belongs to nobody and shows on no profile.
-class StaffTodayStatus {
-  /// The visit already started, or null when they are free.
-  final StaffTodayBooking? currentBooking;
-
-  /// The soonest visit still ahead of the clock, or null when none is left.
-  final StaffTodayBooking? nextBooking;
-
-  /// The one in the chair plus every unfinished one after it.
-  final int visitsLeft;
-
-  const StaffTodayStatus({
-    this.currentBooking,
-    this.nextBooking,
-    this.visitsLeft = 0,
-  });
-
-  factory StaffTodayStatus.fromJson(Map<String, dynamic> json) {
-    final current = json['current_booking'];
-    final next = json['next_booking'];
-
-    return StaffTodayStatus(
-      currentBooking: current is Map<String, dynamic>
-          ? StaffTodayBooking.fromJson(current)
-          : null,
-      nextBooking: next is Map<String, dynamic>
-          ? StaffTodayBooking.fromJson(next)
-          : null,
-      visitsLeft: (json['visits_left'] as num?)?.toInt() ?? 0,
-    );
-  }
-}
-
 /// Everything the Staff Profile screen shows for one person, in one call.
+///
+/// The API also sends `timezone` and a `today` status (the three Today
+/// Status tiles), but this screen shows the full schedule instead of those
+/// tiles and renders every time in the device's local time like the rest of
+/// the app, so neither is parsed here.
 class StaffProfileModel {
   final StaffProfileStaff staff;
-
-  /// IANA timezone of the shop, e.g. 'Asia/Kolkata'. "Today" was worked out in
-  /// this zone; times are still rendered in the device's local time like the
-  /// rest of the app.
-  final String timezone;
-
-  final StaffTodayStatus today;
 
   /// The complete day, earliest first - empty on a free day, which is still a
   /// successful response.
@@ -244,24 +206,17 @@ class StaffProfileModel {
 
   const StaffProfileModel({
     this.staff = const StaffProfileStaff(),
-    this.timezone = '',
-    this.today = const StaffTodayStatus(),
     this.todaysBookings = const [],
   });
 
   factory StaffProfileModel.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? const {};
     final staff = data['staff'] as Map<String, dynamic>?;
-    final today = data['today'] as Map<String, dynamic>?;
 
     return StaffProfileModel(
       staff: staff == null
           ? const StaffProfileStaff()
           : StaffProfileStaff.fromJson(staff),
-      timezone: data['timezone']?.toString() ?? '',
-      today: today == null
-          ? const StaffTodayStatus()
-          : StaffTodayStatus.fromJson(today),
       todaysBookings: (data['todays_bookings'] as List? ?? [])
           .whereType<Map<String, dynamic>>()
           .map(StaffTodayBooking.fromJson)
@@ -283,8 +238,6 @@ class StaffProfileModel {
         isActive: isActive,
         services: staff.services,
       ),
-      timezone: timezone,
-      today: today,
       todaysBookings: todaysBookings,
     );
   }
