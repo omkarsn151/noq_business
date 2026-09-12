@@ -13,12 +13,23 @@ import 'package:noq_business/features/review_status/bloc/review_status_bloc.dart
 import 'package:noq_business/features/review_status/bloc/review_status_event.dart';
 import 'package:noq_business/features/review_status/bloc/review_status_state.dart';
 import 'package:noq_business/features/review_status/data/review_status_model.dart';
+import 'package:noq_business/features/review_status/presentation/widgets/review_status_loading_widget.dart';
 
 enum _StepState { done, current, pending }
 
 const _monthNames = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _formatDate(DateTime? date) {
@@ -85,7 +96,7 @@ class _ReviewStatusScreenState extends State<ReviewStatusScreen> {
         child: BlocBuilder<ReviewStatusBloc, ReviewStatusState>(
           builder: (context, state) {
             if (state is ReviewStatusLoading || state is ReviewStatusInitial) {
-              return const Center(child: CircularProgressIndicator());
+              return const ReviewStatusLoadingWidget();
             }
 
             if (state is ReviewStatusFailure) {
@@ -103,9 +114,9 @@ class _ReviewStatusScreenState extends State<ReviewStatusScreen> {
                       SizedBox(height: 2.h),
                       AppButton(
                         label: 'Retry',
-                        onPressed: () => context
-                            .read<ReviewStatusBloc>()
-                            .add(const ReviewStatusRequested()),
+                        onPressed: () => context.read<ReviewStatusBloc>().add(
+                          const ReviewStatusRequested(),
+                        ),
                       ),
                     ],
                   ),
@@ -116,78 +127,99 @@ class _ReviewStatusScreenState extends State<ReviewStatusScreen> {
             final data = (state as ReviewStatusLoaded).data;
             final isApproved = data.reviewStatus == BusinessStatus.approved;
 
-            return Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.5.h),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _ReviewStatusIcon(status: data.reviewStatus),
-                    SizedBox(height: 2.5.h),
-                    Text(
-                      data.header.title,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+            return RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async => context.read<ReviewStatusBloc>().add(
+                const ReviewStatusRequested(),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.symmetric(horizontal: 6.w),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _ReviewStatusIcon(status: data.reviewStatus),
+                            SizedBox(height: 2.5.h),
+                            Text(
+                              data.header.title,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 1.h),
+                            Text(
+                              data.header.subtitle,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: AppColors.textSecondary),
+                            ),
+                            SizedBox(height: 2.5.h),
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(4.w),
+                              decoration: BoxDecoration(
+                                color: AppColors.textfieldFilledColor,
+                                border: Border.all(
+                                  color: AppColors.borderLight,
+                                ),
+                                borderRadius: BorderRadius.circular(3.5.w),
+                              ),
+                              child: Column(
+                                children: [
+                                  _InfoRow(
+                                    label: 'Business Name',
+                                    value: data.summary.businessName,
+                                  ),
+                                  SizedBox(height: 1.5.h),
+                                  _InfoRow(
+                                    label: 'Category',
+                                    value: data.summary.categoryName,
+                                  ),
+                                  SizedBox(height: 1.5.h),
+                                  _InfoRow(
+                                    label: 'Submitted Date',
+                                    value: _formatDate(
+                                      data.summary.submittedAt,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 35.0,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: _buildTimelineChildren(data.timeline),
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            isApproved
+                                ? AppButton(
+                                    onPressed: () => context.go('/dashboard'),
+                                    label: 'Get Started',
+                                  )
+                                : AppButton(
+                                    onPressed: () =>
+                                        _onCancelReviewPressed(context),
+                                    label: 'Cancel Review',
+                                  ),
+                          ],
+                        ),
                       ),
                     ),
-                    SizedBox(height: 1.h),
-                    Text(
-                      data.header.subtitle,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    SizedBox(height: 2.5.h),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(4.w),
-                      decoration: BoxDecoration(
-                        color: AppColors.textfieldFilledColor,
-                        border: Border.all(color: AppColors.borderLight),
-                        borderRadius: BorderRadius.circular(3.5.w),
-                      ),
-                      child: Column(
-                        children: [
-                          _InfoRow(
-                            label: 'Business Name',
-                            value: data.summary.businessName,
-                          ),
-                          SizedBox(height: 1.5.h),
-                          _InfoRow(
-                            label: 'Category',
-                            value: data.summary.categoryName,
-                          ),
-                          SizedBox(height: 1.5.h),
-                          _InfoRow(
-                            label: 'Submitted Date',
-                            value: _formatDate(data.summary.submittedAt),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 35.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: _buildTimelineChildren(data.timeline),
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    isApproved
-                        ? AppButton(
-                            onPressed: () => context.go('/dashboard'),
-                            label: 'Get Started',
-                          )
-                        : AppButton(
-                            onPressed: () => _onCancelReviewPressed(context),
-                            label: 'Cancel Review',
-                          ),
-                  ],
-                ),
+                  );
+                },
               ),
             );
           },
@@ -212,7 +244,9 @@ class _ReviewStatusScreenState extends State<ReviewStatusScreen> {
       );
       if (i < timeline.length - 1) {
         children.add(
-          _StepConnector(active: _stepStateFromString(item.state) == _StepState.done),
+          _StepConnector(
+            active: _stepStateFromString(item.state) == _StepState.done,
+          ),
         );
       }
     }
@@ -236,7 +270,11 @@ class _ReviewStatusIcon extends StatelessWidget {
             color: AppColors.primaryLight,
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.check_circle_outlined, size: 11.w, color: AppColors.success),
+          child: Icon(
+            Icons.check_circle_outlined,
+            size: 11.w,
+            color: AppColors.success,
+          ),
         );
       case BusinessStatus.rejected:
         return Container(
