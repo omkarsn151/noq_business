@@ -10,6 +10,7 @@ import 'package:noq_business/features/service/bloc/service_event.dart';
 import 'package:noq_business/features/service/bloc/service_state.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/service/presentation/widgets/service_list_card.dart';
+import 'package:noq_business/features/service/presentation/widgets/services_loading_widget.dart';
 
 class ServicesScreen extends StatefulWidget {
   const ServicesScreen({super.key});
@@ -101,7 +102,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
   Widget _body(ServiceState state) {
     if (state is ServiceInitial || state is ServiceLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const ServicesLoadingWidget();
     }
 
     if (state is ServiceFailure) {
