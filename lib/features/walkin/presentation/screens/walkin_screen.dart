@@ -9,6 +9,7 @@ import 'package:noq_business/core/common/app_text_field.dart';
 import 'package:noq_business/core/utils/app_colors.dart';
 import 'package:noq_business/features/service/data/service_model.dart';
 import 'package:noq_business/features/service/presentation/widgets/service_selection_bottom_sheet.dart';
+import 'package:noq_business/features/service/presentation/widgets/service_tile.dart';
 import 'package:noq_business/features/walkin/bloc/create_walkin_bloc.dart';
 import 'package:noq_business/features/walkin/bloc/create_walkin_event.dart';
 import 'package:noq_business/features/walkin/bloc/create_walkin_state.dart';
@@ -31,7 +32,6 @@ class _WalkinScreenState extends State<WalkinScreen> {
   final _formKey = GlobalKey<FormState>();
   final _customerNameController = TextEditingController();
   final _customerPhoneController = TextEditingController();
-  final _servicesController = TextEditingController();
   final _slotController = TextEditingController();
 
   List<ServiceModel> _selectedServices = [];
@@ -51,7 +51,6 @@ class _WalkinScreenState extends State<WalkinScreen> {
   void dispose() {
     _customerNameController.dispose();
     _customerPhoneController.dispose();
-    _servicesController.dispose();
     _slotController.dispose();
     super.dispose();
   }
@@ -65,7 +64,6 @@ class _WalkinScreenState extends State<WalkinScreen> {
     if (result == null) return;
     setState(() {
       _selectedServices = result;
-      _servicesController.text = result.map((s) => s.name).join(', ');
       // A different service set means a different visit length, so the chips
       // picked for the old one no longer apply.
       _clearSlot();
@@ -92,6 +90,17 @@ class _WalkinScreenState extends State<WalkinScreen> {
   void _clearSlot() {
     _selectedSlot = null;
     _slotController.clear();
+  }
+
+  void _removeService(String serviceId) {
+    setState(() {
+      _selectedServices = _selectedServices
+          .where((service) => service.id != serviceId)
+          .toList();
+      // A different service set means a different visit length, so the chips
+      // picked for the old one no longer apply.
+      _clearSlot();
+    });
   }
 
   void _addToQueue() {
@@ -121,7 +130,6 @@ class _WalkinScreenState extends State<WalkinScreen> {
       setState(() {
         _customerNameController.clear();
         _customerPhoneController.clear();
-        _servicesController.clear();
         _selectedServices = [];
         _clearSlot();
       });
@@ -180,7 +188,6 @@ class _WalkinScreenState extends State<WalkinScreen> {
                   AppTextField(
                     labelText: 'Select Service',
                     hintText: 'Select your service',
-                    controller: _servicesController,
                     readOnly: true,
                     onTap: _pickServices,
                     suffixIcon: const Icon(
@@ -191,6 +198,24 @@ class _WalkinScreenState extends State<WalkinScreen> {
                         ? 'Select at least one service'
                         : null,
                   ),
+                  if (_selectedServices.isNotEmpty) ...[
+                    SizedBox(height: 1.5.h),
+                    SizedBox(
+                      height: 14.h,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _selectedServices.length,
+                        separatorBuilder: (_, _) => SizedBox(width: 2.56.w),
+                        itemBuilder: (context, index) {
+                          final service = _selectedServices[index];
+                          return _SelectedServiceTile(
+                            service: service,
+                            onRemove: () => _removeService(service.id),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                   SizedBox(height: 1.5.h),
                   AppTextField(
                     labelText: 'Closest Available slot',
@@ -246,6 +271,39 @@ class _WalkinScreenState extends State<WalkinScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SelectedServiceTile extends StatelessWidget {
+  final ServiceModel service;
+  final VoidCallback onRemove;
+
+  const _SelectedServiceTile({required this.service, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ServiceTile(service: service, showDeleteButton: false),
+        Positioned(
+          top: 0.h,
+          right: 0.w,
+          child: InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(3.08.w),
+            child: Container(
+              padding: EdgeInsets.all(1.03.w),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.close, size: 14.sp, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
